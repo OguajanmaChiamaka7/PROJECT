@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { UserService } from '../services/userService';
 import '../styles/Profile.css';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { currentUser, userProfile, logout, refreshUserData } = useAuth();
   const navigate = useNavigate();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -14,15 +15,16 @@ const Profile = () => {
   const [messageType, setMessageType] = useState('');
 
   const [profileData, setProfileData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    bio: user?.bio || '',
-    currency: user?.currency || 'USD',
-    timezone: user?.timezone || 'UTC',
-    savingsGoal: user?.savingsGoal || '',
-    monthlyBudget: user?.monthlyBudget || ''
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    bio: '',
+    currency: 'USD',
+    timezone: 'UTC',
+    savingsGoal: '',
+    monthlyBudget: '',
+    displayName: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -32,20 +34,21 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (currentUser && userProfile) {
       setProfileData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        bio: user.bio || '',
-        currency: user.currency || 'USD',
-        timezone: user.timezone || 'UTC',
-        savingsGoal: user.savingsGoal || '',
-        monthlyBudget: user.monthlyBudget || ''
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        email: currentUser.email || '',
+        phone: userProfile.phone || '',
+        bio: userProfile.bio || '',
+        currency: userProfile.currency || 'USD',
+        timezone: userProfile.timezone || 'UTC',
+        savingsGoal: userProfile.savingsGoal || '',
+        monthlyBudget: userProfile.monthlyBudget || '',
+        displayName: currentUser.displayName || userProfile.displayName || ''
       });
     }
-  }, [user]);
+  }, [currentUser, userProfile]);
 
   const showMessage = (msg, type = 'success') => {
     setMessage(msg);
@@ -77,15 +80,20 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const updatedUser = { ...user, ...profileData };
-      localStorage.setItem('userProfile', JSON.stringify(updatedUser));
-      
+      if (!currentUser?.uid) {
+        throw new Error('No authenticated user found');
+      }
+
+      // Update user profile using UserService
+      await UserService.updateUserProfile(profileData);
+
+      // Refresh user data in context
+      await refreshUserData();
+
       showMessage('Your profile has been updated successfully! 🎉');
       setIsEditing(false);
     } catch (error) {
+      console.error('Profile update error:', error);
       showMessage('Oops! Something went wrong. Please try again.', 'error');
     } finally {
       setLoading(false);
@@ -109,8 +117,9 @@ const Profile = () => {
     }
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      // Use UserService to change password
+      await UserService.changePassword(passwordData.currentPassword, passwordData.newPassword);
+
       showMessage('Password updated successfully! Your account is more secure now. 🔐');
       setShowChangePassword(false);
       setPasswordData({
@@ -119,7 +128,8 @@ const Profile = () => {
         confirmPassword: ''
       });
     } catch (error) {
-      showMessage('Failed to update password. Please try again.', 'error');
+      console.error('Password update error:', error);
+      showMessage(error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -130,14 +140,42 @@ const Profile = () => {
     navigate('/login');
   };
 
-  const handleDeleteAccount = () => {
-    if (window.confirm('⚠️ Are you absolutely sure you want to delete your MoniUp account? This action cannot be undone and you will lose all your financial data.')) {
-      showMessage('Account deletion request received. Our team will contact you within 24 hours to confirm this action.', 'warning');
+  const handleDeleteAccount = async () => {
+    const confirmText = '⚠️ Are you absolutely sure you want to delete your MoniUp account? This action cannot be undone and you will lose all your financial data.';
+    const passwordPrompt = 'Please enter your password to confirm account deletion:';
+
+    if (window.confirm(confirmText)) {
+      const password = window.prompt(passwordPrompt);
+      if (!password) {
+        showMessage('Account deletion cancelled.', 'info');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Use UserService to delete account and all data
+        await UserService.deleteUserAccount(password);
+
+        showMessage('Your account has been deleted successfully.', 'success');
+
+        // Redirect to home page after a short delay
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+
+      } catch (error) {
+        console.error('Account deletion error:', error);
+        showMessage(error.message, 'error');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const getInitials = () => {
-    return `${profileData.firstName.charAt(0)}${profileData.lastName.charAt(0)}`.toUpperCase();
+    const firstName = profileData.firstName || profileData.displayName?.split(' ')[0] || '';
+    const lastName = profileData.lastName || profileData.displayName?.split(' ')[1] || '';
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || currentUser?.email?.charAt(0).toUpperCase() || '?';
   };
 
   return (
@@ -182,9 +220,11 @@ const Profile = () => {
               <div className="avatar-status"></div>
             </div>
             <div className="profile-info">
-              <h2>{profileData.firstName} {profileData.lastName}</h2>
-              <p className="email">{profileData.email}</p>
-              <p className="member-since">MoniUp member since 2024</p>
+              <h2>
+                {profileData.displayName || `${profileData.firstName} ${profileData.lastName}`.trim() || currentUser?.displayName || 'User'}
+              </h2>
+              <p className="email">{profileData.email || currentUser?.email}</p>
+              <p className="member-since">MoniUp member since {new Date(currentUser?.metadata?.creationTime || Date.now()).getFullYear()}</p>
               <button className="change-photo-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 9c-.7 0-1.4-.1-2.1-.3-.2.6-.8 1-1.4 1-.9 0-1.6-.7-1.6-1.6 0-.4.2-.8.5-1.1-.9-.9-2.1-1.5-3.4-1.5s-2.5.6-3.4 1.5c.3.3.5.7.5 1.1 0 .9-.7 1.6-1.6 1.6-.6 0-1.2-.4-1.4-1C6.4 10.9 5.7 11 5 11c-2.8 0-5-2.2-5-5s2.2-5 5-5c.7 0 1.4.1 2.1.3.2-.6.8-1 1.4-1 .9 0 1.6.7 1.6 1.6 0 .4-.2.8-.5 1.1.9.9 2.1 1.5 3.4 1.5s2.5-.6 3.4-1.5c-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6.6 0 1.2.4 1.4 1C17.6 1.1 18.3 1 19 1c2.8 0 5 2.2 5 5s-2.2 5-5 5z"/>
@@ -213,6 +253,20 @@ const Profile = () => {
 
             <form onSubmit={handleProfileSubmit} className="profile-form">
               <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="displayName">Display Name</label>
+                  <input
+                    type="text"
+                    id="displayName"
+                    name="displayName"
+                    value={profileData.displayName}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={isEditing ? 'editable' : 'readonly'}
+                    placeholder="How you'd like to be called"
+                  />
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="firstName">First Name</label>
                   <input

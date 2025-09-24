@@ -8,6 +8,144 @@
   font-family: "Inter", sans-serif;
 }
 
+/* Dashboard Loading State */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  margin-bottom: 24px;
+  color: #3b82f6;
+}
+
+.dashboard-loading h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.dashboard-loading p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Dashboard Error State */
+.dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.error-icon {
+  color: #ef4444;
+  margin-bottom: 24px;
+}
+
+.dashboard-error h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.dashboard-error p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+.retry-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #92400e;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  background: rgba(146, 64, 14, 0.1);
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Loading state for dashboard cards */
+.quick-stat-card.loading {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 /* Dashboard Header */
 .dashboard-header {
   display: flex;
@@ -38,10 +176,50 @@
   margin: 0;
 }
 
+.last-updated {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 4px 0 0 0;
+  font-weight: 400;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.refresh-dashboard-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.refresh-dashboard-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-dashboard-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-dashboard-btn.loading {
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .date-display {

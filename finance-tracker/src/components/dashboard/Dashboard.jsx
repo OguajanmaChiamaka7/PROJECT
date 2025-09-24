@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet, PiggyBank, Target, Zap, TrendingUp, Award, Calendar } from 'lucide-react';
+import { Wallet, PiggyBank, Target, Zap, TrendingUp, Award, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTransaction } from '../../context/TransactionContext';
 import { useGoals } from '../../context/GoalsContext';
 import { useGamification } from '../../context/GamificationContext';
+import { DashboardService } from '../../services/dashboardService';
 import StatsCard from './StatsCard';
 import ProgressBar from './ProgressBar';
 import RecentTransactions from './RecentTransactions';
 import DailyTasks from './DailyTasks';
 import QuickActions from './QuickActions';
+import WhoAmI from '../debug/WhoAmI';
 import '../../styles/dashboard.css';
 
 const Dashboard = () => {
@@ -17,26 +19,60 @@ const Dashboard = () => {
   const { goals, getTotalSaved, getTotalTargeted } = useGoals();
   const { userStats, getRecentBadges } = useGamification();
 
-  // Load analytics on component mount
+  // Dashboard state
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  // Load dashboard data
+  const loadDashboardData = async () => {
+    if (!currentUser?.uid) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await DashboardService.getDashboardData(currentUser.uid);
+      setDashboardData(data);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
+
+  // Load data on component mount and user change
   useEffect(() => {
     if (currentUser?.uid) {
+      loadDashboardData();
       loadAnalytics();
+    } else {
+      setDashboardData(null);
+      setLoading(false);
     }
   }, [currentUser?.uid]);
 
-  // Calculate real-time stats
-  const balance = currentUser?.balance || 0;
-  const monthlyIncome = getTotalByType('income', 'month');
-  const monthlyExpenses = getTotalByType('expense', 'month');
-  const totalSaved = getTotalSaved();
-  const totalTargeted = getTotalTargeted();
-  const savingsProgress = totalTargeted > 0 ? (totalSaved / totalTargeted) * 100 : 0;
+  // Get stats from dashboard data or fallback to context data
+  const stats = dashboardData?.stats || {};
+  const balance = stats.balance || currentUser?.balance || 0;
+  const monthlyIncome = stats.monthlyIncome || getTotalByType('income', 'month');
+  const monthlyExpenses = stats.monthlyExpenses || getTotalByType('expense', 'month');
+  const totalSaved = stats.totalSaved || getTotalSaved();
+  const totalTargeted = stats.totalTargeted || getTotalTargeted();
+  const savingsProgress = stats.savingsProgress || (totalTargeted > 0 ? (totalSaved / totalTargeted) * 100 : 0);
 
-  // Previous month comparison (mock for now - you can implement this with analytics)
-  const previousMonthExpenses = monthlyExpenses * 0.92; // Mock 8% increase
-  const expenseChange = previousMonthExpenses > 0
-    ? ((monthlyExpenses - previousMonthExpenses) / previousMonthExpenses * 100).toFixed(1)
-    : 0;
+  // Changes from previous month (real data from Firebase)
+  const expenseChange = stats.expenseChange || 0;
+  const incomeChange = stats.incomeChange || 0;
+  const savingsProgressChange = stats.savingsChange || 5.2; // Fallback
 
   const quickStatsData = [
     {
@@ -60,15 +96,15 @@ const Dashboard = () => {
     {
       title: "Savings Goal",
       value: `${Math.round(savingsProgress)}%`,
-      change: "+5.2%", // This could be calculated from goals progress
+      change: `${savingsProgressChange >= 0 ? '+' : ''}${savingsProgressChange}%`,
       icon: Target,
       bgColor: "#f0f9ff",
       iconColor: "#0ea5e9",
-      changeColor: "#10b981"
+      changeColor: savingsProgressChange >= 0 ? "#10b981" : "#ef4444"
     },
     {
       title: "XP Points",
-      value: userStats.xp.toLocaleString(),
+      value: (stats.xp || userStats.xp || 0).toLocaleString(),
       change: "+150", // This could be calculated from recent XP gains
       icon: Zap,
       bgColor: "#fefbf2",
@@ -77,19 +113,81 @@ const Dashboard = () => {
     }
   ];
 
+  // Loading state
+  if (loading && !dashboardData) {
+    return (
+      <div className="dashboard-container">
+        <div className="dashboard-loading">
+          <div className="loading-spinner">
+            <RefreshCw className="animate-spin" size={48} />
+          </div>
+          <h2>Loading your financial dashboard...</h2>
+          <p>Fetching your latest data from Firebase</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !dashboardData) {
+    return (
+      <div className="dashboard-container">
+        <div className="dashboard-error">
+          <AlertCircle size={48} className="error-icon" />
+          <h2>Unable to Load Dashboard</h2>
+          <p>{error}</p>
+          <button onClick={handleRefresh} className="retry-button">
+            <RefreshCw size={16} />
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
+      {/* Debug Component - Remove in production */}
+      {/* <WhoAmI /> */}
+
+      {/* Error Banner (for non-critical errors) */}
+      {error && dashboardData && (
+        <div className="error-banner">
+          <AlertCircle size={16} />
+          <span>Some data may be outdated. Last refresh: {lastRefresh.toLocaleTimeString()}</span>
+          <button onClick={handleRefresh} className="refresh-btn">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="dashboard-header">
         <div className="welcome-section">
           <h1 className="welcome-title">
-            Welcome back, {currentUser?.displayName || 'User'}! 👋
+            Welcome back, {dashboardData?.userProfile?.displayName || currentUser?.displayName || 'User'}! 👋
           </h1>
           <p className="welcome-subtitle">
-            Level {userStats.level} • {userStats.xp} XP • Here's your financial overview today.
+            Level {stats.level || userStats.level || 1} • {(stats.xp || userStats.xp || 0).toLocaleString()} XP •
+            {stats.completedTasks > 0 && ` ${stats.completedTasks}/${stats.totalTasks} tasks completed •`}
+            {' '}Here's your financial overview today.
           </p>
+          {dashboardData?.lastUpdated && (
+            <p className="last-updated">
+              Last updated: {dashboardData.lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </div>
         <div className="header-actions">
+          <button
+            onClick={handleRefresh}
+            className={`refresh-dashboard-btn ${loading ? 'loading' : ''}`}
+            disabled={loading}
+            title="Refresh dashboard data"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
           <div className="date-display">
             {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
