@@ -10,10 +10,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Page Components
 import Home from './pages/Home';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
+import Auth from './pages/Auth';
 import ProfileSetup from "./pages/ProfileSetup";
-import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
@@ -66,9 +64,9 @@ function App() {
         <Route path="/" element={<Home />} />
 
         {/* Auth Routes */}
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/signup" element={<AuthPage />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/signup" element={<Auth />} />
+        <Route path="/auth" element={<Auth />} />
 
         {/* Profile Setup (after signup, before dashboard) */}
         <Route

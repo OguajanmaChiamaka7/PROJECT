@@ -131,6 +131,7 @@ import { auth, db } from "../services/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { signup, login, logout } from "../services/auth";
+import { getUserProfile } from "../services/firestore";
 
 const AuthContext = createContext();
 
@@ -146,17 +147,52 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Load user profile data
+  const loadUserProfile = async (uid) => {
+    try {
+      const profile = await getUserProfile(uid);
+      setUserProfile(profile);
+      return profile;
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      return null;
+    }
+  };
+
+  // Refresh user data
+  const refreshUserData = async () => {
+    if (currentUser?.uid) {
+      await loadUserProfile(currentUser.uid);
+    }
+  };
 
   // Track user login state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-        setCurrentUser({ ...user, ...userData });
+        try {
+          // Load comprehensive user profile
+          const profile = await loadUserProfile(user.uid);
+          setCurrentUser({
+            ...user,
+            ...profile,
+            // Ensure we have proper defaults
+            balance: profile?.balance || 5000,
+            xp: profile?.xp || 0,
+            level: profile?.level || 1,
+            streak: profile?.streak || 0
+          });
+        } catch (error) {
+          console.error("Error loading user data:", error);
+          setCurrentUser(user);
+        }
       } else {
         setCurrentUser(null);
+        setUserProfile(null);
       }
       setLoading(false);
     });
@@ -166,9 +202,13 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    userProfile,
+    loading,
     signup,
     login,
     logout,
+    refreshUserData,
+    loadUserProfile,
   };
 
   return (
