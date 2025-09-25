@@ -109,12 +109,14 @@
   background: transparent;
   flex: 1;
   font-size: 1rem;
-  color: #334155;
+  font-weight: 500;
+  color: #1f2937;
   height: 100%;
 }
 
 .form-group input::placeholder {
-  color: #94a3b8;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 .toggle-visibility {

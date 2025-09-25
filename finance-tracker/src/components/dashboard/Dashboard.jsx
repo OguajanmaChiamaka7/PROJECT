@@ -11,6 +11,7 @@ import RecentTransactions from './RecentTransactions';
 import DailyTasks from './DailyTasks';
 import QuickActions from './QuickActions';
 import WhoAmI from '../debug/WhoAmI';
+import FirebaseTest from '../debug/FirebaseTest';
 import '../../styles/dashboard.css';
 
 const Dashboard = () => {
@@ -147,8 +148,9 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Debug Component - Remove in production */}
+      {/* Debug Components - Remove in production */}
       {/* <WhoAmI /> */}
+      <FirebaseTest />
 
       {/* Error Banner (for non-critical errors) */}
       {error && dashboardData && (

@@ -18,16 +18,21 @@
   width: 900px;
   max-width: 95vw;
   min-height: 600px;
+  /* Debug: add border to see container */
+  /* border: 2px solid red; */
 }
 
 /* Forms Container - This contains both forms and slides */
 .forms-container {
   position: absolute;
   top: 0;
+  left: 0;
   height: 100%;
   width: 200%;
   transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
+  /* Debug: add border to see forms container */
+  /* border: 2px solid blue; */
 }
 
 /* Login Mode: forms-container positioned to show login form on left */
@@ -35,7 +40,7 @@
   transform: translateX(0%);
 }
 
-/* Signup Mode: forms-container slides to show signup form on left */
+/* Signup Mode: forms-container slides left to show signup form */
 .sliding-auth-wrapper.signup-mode .forms-container {
   transform: translateX(-50%);
 }
@@ -45,22 +50,25 @@
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
   padding: 40px 30px;
   box-sizing: border-box;
   position: relative;
+  background: #fff;
+  flex-shrink: 0;
 }
 
 /* Login container - First in flex order (left side of container) */
 .login-container {
   order: 1;
-  background: #fff;
+  justify-content: flex-start;
+  padding-left: 60px;
 }
 
 /* Signup container - Second in flex order (right side of container) */
 .signup-container {
   order: 2;
-  background: #fff;
+  justify-content: flex-end;
+  padding-right: 60px;
 }
 
 /* Auth Form Styles */
@@ -137,6 +145,13 @@
 
 .sliding-auth-container .form-input {
   font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.sliding-auth-container .form-input::placeholder {
+  color: #6b7280;
+  font-weight: 400;
 }
 
 /* Button Styles */
@@ -402,7 +417,7 @@
   }
 
   .forms-container {
-    width: 100%;
+    width: 100% !important;
     position: relative;
     left: 0;
     transform: none !important;
