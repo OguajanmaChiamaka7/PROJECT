@@ -1,67 +1,74 @@
-import React, { useState } from 'react';
-import { PiggyBank, Users, Trophy, MessageCircle, Plus, Target, Calendar, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PiggyBank, Users, Trophy, MessageCircle, Plus, Target, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useSavingsCircle } from '../../context/SavingsCircleContext';
 import '../../styles/SavingCircle.css';
-
 
 const SavingsCircle = () => {
   const [activeTab, setActiveTab] = useState('circles');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { currentUser } = useAuth();
+  const {
+    circles,
+    leaderboard,
+    userStats,
+    loadSavingsCircles,
+    loadLeaderboard,
+    joinCircle,
+    createCircle
+  } = useSavingsCircle();
 
-  // Mock data for savings circles
-  const savingsCircles = [
-    {
-      id: 1,
-      name: 'Emergency Fund',
-      icon: '🚨',
-      members: 12,
-      currentAmount: 45000,
-      goalAmount: 100000,
-      yourContribution: 8500,
-      progress: 45,
-      daysLeft: 180
-    },
-    {
-      id: 2,
-      name: 'Vacation Squad',
-      icon: '✈️',
-      members: 8,
-      currentAmount: 120000,
-      goalAmount: 200000,
-      yourContribution: 15000,
-      progress: 60,
-      daysLeft: 120
-    },
-    {
-      id: 3,
-      name: 'Car Fund Circle',
-      icon: '🚗',
-      members: 6,
-      currentAmount: 125000,
-      goalAmount: 500000,
-      yourContribution: 20000,
-      progress: 25,
-      daysLeft: 365
-    },
-    {
-      id: 4,
-      name: 'Dream House Fund',
-      icon: '🏠',
-      members: 15,
-      currentAmount: 2500000,
-      goalAmount: 5000000,
-      yourContribution: 150000,
-      progress: 50,
-      daysLeft: 730
-    }
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      if (!currentUser) return;
 
-  // Mock leaderboard data
-  const leaderboard = [
-    { id: 1, name: 'Sarah M.', level: 8, points: 2850, badge: '💎' },
-    { id: 2, name: 'John K.', level: 7, points: 2340, badge: '🏆' },
-    { id: 3, name: 'You', level: 5, points: 1890, badge: '🎯' },
-    { id: 4, name: 'Mary L.', level: 6, points: 1750, badge: '⭐' },
-    { id: 5, name: 'David R.', level: 4, points: 1620, badge: '🌟' }
-  ];
+      try {
+        setLoading(true);
+        setError(null);
+        await Promise.all([
+          loadSavingsCircles(),
+          loadLeaderboard()
+        ]);
+      } catch (err) {
+        console.error('Error loading savings circle data:', err);
+        setError('Failed to load savings circle data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [currentUser]);
+
+  if (loading) {
+    return (
+      <div className="savings-circle-container">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Loading savings circles...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="savings-circle-container">
+        <div className="error-state">
+          <AlertCircle size={48} className="error-icon" />
+          <h3>Error Loading Data</h3>
+          <p>{error}</p>
+          <button
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const formatAmount = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -131,7 +138,7 @@ const SavingsCircle = () => {
         </div>
         <div className="user-level">
           <Target className="level-icon" />
-          <span>Level 5 Saver</span>
+          <span>Level {userStats?.level || 1} Saver</span>
         </div>
       </div>
 
@@ -183,9 +190,21 @@ const SavingsCircle = () => {
             </div>
 
             <div className="circles-grid">
-              {savingsCircles.map(circle => (
-                <CircleCard key={circle.id} circle={circle} />
-              ))}
+              {circles.length === 0 ? (
+                <div className="empty-state">
+                  <PiggyBank size={48} className="empty-icon" />
+                  <h3>No Savings Circles Yet</h3>
+                  <p>Join or create your first savings circle to start building wealth with friends!</p>
+                  <button className="btn btn-primary">
+                    <Plus size={16} />
+                    Create Your First Circle
+                  </button>
+                </div>
+              ) : (
+                circles.map(circle => (
+                  <CircleCard key={circle.id} circle={circle} />
+                ))
+              )}
             </div>
           </div>
         )}
@@ -200,19 +219,27 @@ const SavingsCircle = () => {
             </div>
 
             <div className="leaderboard-list">
-              {leaderboard.map((user, index) => (
-                <div key={user.id} className={`leaderboard-item ${user.name === 'You' ? 'current-user' : ''}`}>
-                  <div className="rank">#{index + 1}</div>
-                  <div className="user-info">
-                    <span className="badge">{user.badge}</span>
-                    <div>
-                      <span className="username">{user.name}</span>
-                      <span className="user-level">Level {user.level}</span>
-                    </div>
-                  </div>
-                  <div className="points">{user.points} pts</div>
+              {leaderboard.length === 0 ? (
+                <div className="empty-state">
+                  <Trophy size={48} className="empty-icon" />
+                  <h3>No Leaderboard Data</h3>
+                  <p>Start saving and completing tasks to appear on the leaderboard!</p>
                 </div>
-              ))}
+              ) : (
+                leaderboard.map((user, index) => (
+                  <div key={user.id} className={`leaderboard-item ${user.id === currentUser?.uid ? 'current-user' : ''}`}>
+                    <div className="rank">#{index + 1}</div>
+                    <div className="user-info">
+                      <span className="badge">{user.badge || '🏅'}</span>
+                      <div>
+                        <span className="username">{user.displayName || 'Anonymous User'}</span>
+                        <span className="user-level">Level {user.level || 1}</span>
+                      </div>
+                    </div>
+                    <div className="points">{user.xp || 0} XP</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

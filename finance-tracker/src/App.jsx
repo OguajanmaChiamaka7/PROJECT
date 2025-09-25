@@ -17,6 +17,12 @@ import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import Rewards from './pages/Rewards';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
+import Investment from './pages/Investment';
+import Learning from './pages/Learning';
+import Resources from './pages/Resources';
 import Badges from './components/gamification/Badges';
 import Tasks from './components/dashboard/DailyTasks';
 import SavingsCircle from './components/gamification/SavingCircle';
@@ -84,6 +90,12 @@ function App() {
           <Route path="goals" element={<Goals />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="rewards" element={<Rewards />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="investment" element={<Investment />} />
+          <Route path="learning" element={<Learning />} />
+          <Route path="resources" element={<Resources />} />
           <Route path="badges" element={<Badges />} />
           <Route path="savings" element={<SavingsCircle />} />
           <Route path='tasks' element={<Tasks />} />

@@ -5,29 +5,25 @@
   --navbar-height: 64px;
 }
 
-/* Base Layout */
+/* Professional Layout Structure */
 .layout-container {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(to bottom right, #f0fdfa, #34e660);
+  background: linear-gradient(to bottom right, #f0fdfa, #f8fafc);
   font-family: "Inter", sans-serif;
+  padding-top: var(--navbar-height); /* Account for fixed navbar */
+  overflow-x: z; /* Prevent horizontal scroll during animations */
 }
 
 /* Main Content Area */
 .layout-main {
   position: relative;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--navbar-height));
   display: flex;
   flex-direction: column;
 }
 
-/* Navbar - stays at top, spans full width */
-.navbar {
-  position: relative;
-  height: var(--navbar-height);
-  z-index: 30;
-  /* Add your navbar styles here */
-}
+/* Navbar is handled in its own CSS file - it's fixed positioned */
 
 /* Page Content - this is what gets pushed by the RIGHT sidebar */
 .layout-content {
@@ -37,9 +33,14 @@
   min-height: calc(100vh - var(--navbar-height));
 }
 
-/* When sidebar is open, push content to the RIGHT (because sidebar comes from left) */
+/* Desktop: When sidebar is open, push content to the right */
 .layout-content.sidebar-open {
   margin-left: var(--sidebar-width);
+}
+
+/* Ensure smooth transitions */
+.layout-content {
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Responsive padding */
@@ -55,17 +56,33 @@
   }
 }
 
-/* Mobile - no pushing on mobile, sidebar overlays */
-@media (max-width: 767px) {
+/* Tablet and Mobile Responsive Behavior */
+@media (max-width: 1023px) {
   .layout-content.sidebar-open {
-    margin-left: 0;
+    margin-left: 0; /* No pushing on tablet/mobile - sidebar overlays */
   }
 }
 
-/* Mobile Overlay */
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .layout-content {
+    padding: 1rem;
+  }
+}
+
+/* Professional Mobile/Tablet Overlay */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
-  background: rgba(0, 0, 0, 0.25);
+  z-index: 1050; /* Between sidebar and navbar */
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease;
+}
+
+/* Only show overlay on tablet and mobile when sidebar is open */
+@media (min-width: 1024px) {
+  .overlay {
+    display: none;
+  }
 }

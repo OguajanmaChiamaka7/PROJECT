@@ -119,9 +119,7 @@ const Dashboard = () => {
     return (
       <div className="dashboard-container">
         <div className="dashboard-loading">
-          <div className="loading-spinner">
-            <RefreshCw className="animate-spin" size={48} />
-          </div>
+          <div className="loading-spinner"></div>
           <h2>Loading your financial dashboard...</h2>
           <p>Fetching your latest data from Firebase</p>
         </div>

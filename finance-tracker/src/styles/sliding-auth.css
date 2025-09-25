@@ -4,7 +4,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   padding: 20px;
   position: relative;
 }
@@ -126,9 +126,9 @@
 }
 
 .sliding-auth-container .input-container:focus-within {
-  border-color: #667eea;
+  border-color: #10b981;
   background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   transform: translateY(-1px);
 }
 
@@ -140,7 +140,7 @@
 }
 
 .sliding-auth-container .input-container:focus-within .input-icon {
-  color: #667eea;
+  color: #10b981;
 }
 
 .sliding-auth-container .form-input {
@@ -156,7 +156,7 @@
 
 /* Button Styles */
 .auth-button {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #10b981, #059669);
   color: white;
   border: none;
   padding: 14px 28px;
@@ -166,12 +166,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 8px;
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
 }
 
 .auth-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.4);
 }
 
 .auth-button:active {
@@ -217,6 +217,8 @@
   overflow: hidden;
   transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 100;
+  display: block;
+  visibility: visible;
 }
 
 /* In login mode: overlay covers right side (where signup would be visible) */
@@ -230,13 +232,16 @@
 }
 
 .overlay {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   position: relative;
   left: -100%;
   height: 100%;
   width: 200%;
   transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
   color: white;
+  display: block;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Overlay content slides to show appropriate panel */
@@ -259,6 +264,8 @@
   width: 50%;
   transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
   padding: 40px 30px;
+  opacity: 1;
+  visibility: visible;
 }
 
 .overlay-content {
@@ -403,6 +410,19 @@
   margin-top: 4px;
 }
 
+/* Desktop/Large screens - ensure overlay is visible */
+@media (min-width: 769px) {
+  .overlay-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .mobile-toggle {
+    display: none !important;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .sliding-auth-container {
@@ -447,7 +467,7 @@
   }
 
   .overlay-container {
-    display: none;
+    display: none !important;
   }
 
   /* Show mobile toggle */

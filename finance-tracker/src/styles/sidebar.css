@@ -4,6 +4,7 @@
 :root {
   --sidebar-width: 300px; /* change this to widen/narrow the pushed area */
   --navbar-height: 64px;
+  --nav-height: 64px; /* Match Navbar.css */
   --brand-gradient: linear-gradient(135deg, #10b981, #059669);
 }
 
@@ -19,18 +20,18 @@
   min-height: calc(100vh - var(--navbar-height));
 }
 
-/* the main content will be pushed on desktop when sidebar is open */
-.main-content {
-  transition: margin-left 0.32s ease; /* Changed from margin-right to margin-left */
-  margin-left: 0; /* Changed from margin-right to margin-left */
+/* Professional content pushing - integrated with Layout.css */
+.layout-content {
+  transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-left: 0;
   padding: 24px;
   box-sizing: border-box;
+  min-height: calc(100vh - var(--nav-height));
 }
 
-/* when sidebar is open (applied to root layout element),
-   push the content to the right on desktop */
-.app-layout.sidebar-open .main-content {
-  margin-left: var(--sidebar-width); /* Changed from margin-right to margin-left */
+/* When sidebar is open, push content to the right */
+.layout-content.sidebar-open {
+  margin-left: var(--sidebar-width);
 }
 
 /* --- Sidebar base --- */
@@ -39,15 +40,16 @@
   width: var(--w);
   background: #ffffff;
   box-shadow: 0 8px 24px rgba(16,24,40,0.06);
-  border-right: 1px solid #e6f7ee; /* Changed from border-left to border-right */
+  border-right: 1px solid #e6f7ee;
   position: fixed;
-  top: var(--navbar-height); /* under the navbar */
-  left: 0; /* Changed from right: 0 to left: 0 - opens from the left */
-  height: calc(100vh - var(--navbar-height));
-  transform: translateX(-100%); /* Changed from translateX(100%) to translateX(-100%) - hidden to left */
-  transition: transform 0.3s ease;
-  z-index: 1100; /* under navbar (navbar is higher) */
+  top: var(--nav-height); /* Stay connected to navbar */
+  left: 0;
+  height: calc(100vh - var(--nav-height));
+  transform: translateX(-100%); /* Hidden to left */
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1100; /* Under navbar */
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* open state (visible) */
@@ -55,30 +57,44 @@
   transform: translateX(0);
 }
 
-/* small screens: overlay behavior */
-@media (max-width: 767px) {
-  .app-layout.sidebar-open .main-content {
-    /* don't push content on mobile, overlay instead */
-    margin-left: 0; /* Changed from margin-right to margin-left */
-  }
+/* Tablet and Mobile: Overlay behavior */
+@media (max-width: 1023px) {
   .sidebar {
     width: 92%;
     max-width: 360px;
-    left: 0; /* Changed from right: 0 to left: 0 */
-    transform: translateX(-100%); /* Changed from translateX(100%) to translateX(-100%) */
-    box-shadow: 0 12px 40px rgba(16,24,40,0.12);
+    box-shadow: 0 12px 40px rgba(16,24,40,0.15);
   }
-  .sidebar.open { transform: translateX(0); }
 }
 
-/* --- Sidebar header --- */
+/* Mobile specific adjustments */
+@media (max-width: 767px) {
+  .sidebar {
+    width: 95%;
+    max-width: 320px;
+  }
+
+  .user-section {
+    padding: 16px;
+  }
+
+  .sidebar-nav {
+    padding: 0 12px 20px;
+  }
+}
+
+/* Professional Sidebar Header - Perfectly Aligned with Navbar */
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--navbar-height);
+  height: var(--nav-height); /* Match navbar height exactly */
   padding: 0 16px;
   border-bottom: 1px solid #eef2f2;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .brand {
@@ -186,13 +202,34 @@
   text-align: center;
 }
 
-/* --- Navigation --- */
+/* Professional Navigation with Perfect Scrolling */
 .sidebar-nav {
   padding: 0px 16px 24px;
-  height: calc(100vh - var(--navbar-height) - 220px);
+  height: calc(100vh - var(--nav-height) - 220px);
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
+}
+
+/* Webkit Scrollbar Styling */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.4);
 }
 
 /* Navigation sections */

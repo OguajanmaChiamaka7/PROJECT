@@ -3,7 +3,8 @@ import { NavLink } from 'react-router-dom';
 import {
   X, User, CheckSquare, TrendingUp, Trophy, Award,
   Users, Gift, Bell, Wallet, Home, BarChart3, Target,
-  CreditCard, PiggyBank, Settings, LogOut
+  CreditCard, PiggyBank, Settings, LogOut, DollarSign,
+  BookOpen, FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useGamification } from '../../context/GamificationContext';
@@ -12,6 +13,7 @@ import '../../styles/Sidebar.css';
 const SidebarItem = ({ icon: Icon, text, to, badge, isDanger = false }) => (
   <NavLink
     to={to}
+    end={to === '/app'} // Only use 'end' prop for the dashboard route
     className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''} ${isDanger ? 'danger' : ''}`}
   >
     <div className="item-left">
@@ -112,6 +114,13 @@ const Sidebar = ({ sidebarOpen, toggleSidebar }) => {
           <SidebarItem icon={Trophy} text="Badges" to="/app/badges" />
           <SidebarItem icon={Users} text="Savings Circle" to="/app/savings" />
           <SidebarItem icon={Gift} text="Rewards" to="/app/rewards" badge="1" />
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-section-title">Features</div>
+          <SidebarItem icon={DollarSign} text="Investment" to="/app/investment" />
+          <SidebarItem icon={BookOpen} text="Learning" to="/app/learning" />
+          <SidebarItem icon={FileText} text="Resources" to="/app/resources" />
         </div>
 
         <div className="nav-section">

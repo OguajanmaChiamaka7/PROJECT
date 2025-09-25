@@ -4,7 +4,8 @@
       "Bash(npm run dev:*)",
       "Bash(find:*)",
       "Bash(npm run lint)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(del \"C:\\Users\\kingsley\\Desktop\\PROJECT\\finance-tracker\\src\\utils\\sampleData.js\")"
     ],
     "deny": [],
     "ask": []

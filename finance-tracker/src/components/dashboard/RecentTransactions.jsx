@@ -50,18 +50,10 @@ const TransactionItem = ({ transaction }) => {
 const RecentTransactions = () => {
   const { getRecentTransactions, loading } = useTransaction();
 
-  // Get recent transactions from context (or use fallback data)
-  const contextTransactions = getRecentTransactions(5);
+  // Get recent transactions from context - NO DUMMY DATA
+  const transactions = getRecentTransactions(5);
 
-  // Fallback data for when no transactions exist
-  const fallbackTransactions = [
-    { id: 'demo-1', type: 'income', description: 'Welcome Bonus', amount: 5000, date: new Date(), category: 'Bonus' },
-    { id: 'demo-2', type: 'expense', description: 'Setup Complete', amount: -500, date: new Date(), category: 'System' }
-  ];
-
-  const transactions = contextTransactions.length > 0 ? contextTransactions : fallbackTransactions;
-
-  if (loading && contextTransactions.length === 0) {
+  if (loading && transactions.length === 0) {
     return (
       <Card title="Recent Transactions">
         <div className="space-y-4">

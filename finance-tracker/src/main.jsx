@@ -7,6 +7,7 @@ import { TransactionProvider } from './context/TransactionContext.jsx'
 import { GoalsProvider } from './context/GoalsContext.jsx'
 import { GamificationProvider } from './context/GamificationContext.jsx'
 import { GameProvider } from './context/GameContext.jsx'
+import { SavingsCircleProvider } from './context/SavingsCircleContext.jsx'
 import './index.css'
 import "./styles/globals.css";
 
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <GoalsProvider>
             <GamificationProvider>
               <GameProvider>
-                <App />
+                <SavingsCircleProvider>
+                  <App />
+                </SavingsCircleProvider>
               </GameProvider>
             </GamificationProvider>
           </GoalsProvider>

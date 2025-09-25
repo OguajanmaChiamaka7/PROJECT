@@ -8,7 +8,7 @@
   font-family: "Inter", sans-serif;
 }
 
-/* Dashboard Loading State */
+/* Professional Dashboard Loading State */
 .dashboard-loading {
   display: flex;
   flex-direction: column;
@@ -17,24 +17,71 @@
   min-height: 400px;
   text-align: center;
   color: #6b7280;
+  background: white;
+  border-radius: 20px;
+  margin: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.1);
 }
 
 .loading-spinner {
-  margin-bottom: 24px;
-  color: #3b82f6;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+/* Modern 3-Dot Loading Animation */
+.loading-spinner::before {
+  content: '';
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 60px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #10b981;
+  border-radius: 50%;
+  animation: modernSpin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: innerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes modernSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes innerPulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.5); }
 }
 
 .dashboard-loading h2 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .dashboard-loading p {
   font-size: 1rem;
   color: #6b7280;
   margin: 0;
+  font-weight: 500;
 }
 
 /* Dashboard Error State */
