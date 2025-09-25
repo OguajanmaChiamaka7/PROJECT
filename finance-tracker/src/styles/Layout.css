@@ -1,0 +1,71 @@
+/* Base Layout */
+/* Use your existing sidebar CSS variables */
+:root {
+  --sidebar-width: 300px;
+  --navbar-height: 64px;
+}
+
+/* Base Layout */
+.layout-container {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #f0fdfa, #34e660);
+  font-family: "Inter", sans-serif;
+}
+
+/* Main Content Area */
+.layout-main {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navbar - stays at top, spans full width */
+.navbar {
+  position: relative;
+  height: var(--navbar-height);
+  z-index: 30;
+  /* Add your navbar styles here */
+}
+
+/* Page Content - this is what gets pushed by the RIGHT sidebar */
+.layout-content {
+  flex: 1;
+  padding: 1rem;
+  transition: margin-right 0.3s ease-in-out;
+  min-height: calc(100vh - var(--navbar-height));
+}
+
+/* When sidebar is open, push content to the RIGHT (because sidebar comes from left) */
+.layout-content.sidebar-open {
+  margin-left: var(--sidebar-width);
+}
+
+/* Responsive padding */
+@media (min-width: 640px) {
+  .layout-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .layout-content {
+    padding: 2rem;
+  }
+}
+
+/* Mobile - no pushing on mobile, sidebar overlays */
+@media (max-width: 767px) {
+  .layout-content.sidebar-open {
+    margin-left: 0;
+  }
+}
+
+/* Mobile Overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.25);
+}

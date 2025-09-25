@@ -1,0 +1,202 @@
+/* AuthPage.css */
+
+
+.auth-container {
+  background: #ffffff;
+  /* border-radius: 20px; */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15),
+              0 8px 16px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  width: 900px;
+  max-width: 95vw;
+  min-height: 600px;
+  margin-left: 200px;
+  margin-top: 12px;
+  border-top-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  /* border: 2px solid black; */
+}
+
+/* Form containers */
+.form-container {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  transition: all 0.6s ease-in-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.sign-in-container {
+  left: 0;
+  z-index: 2;
+}
+
+.sign-up-container {
+  left: 0;
+  opacity: 0;
+  z-index: 1;
+}
+
+.auth-container.right-panel-active .sign-in-container {
+  transform: translateX(100%);
+}
+
+.auth-container.right-panel-active .sign-up-container {
+  transform: translateX(100%);
+  opacity: 1;
+  z-index: 5;
+}
+
+/* Overlay container */
+.overlay-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.6s ease-in-out;
+  z-index: 100;
+}
+
+.auth-container.right-panel-active .overlay-container {
+  transform: translateX(-100%);
+}
+
+.overlay {
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+/* background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); */
+background: linear-gradient(135deg, #19c58b, #059669);
+/* background: linear-gradient(135deg, #34d399, #10b981); */
+  color: #ffffff;
+  position: relative;
+  left: -100%;
+  height: 100%;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 0.6s ease-in-out;
+}
+
+.auth-container.right-panel-active .overlay {
+  transform: translateX(50%);
+}
+
+.overlay-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 50px;
+  text-align: center;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  transition: transform 0.6s ease-in-out;
+}
+
+.overlay-panel h1 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.overlay-panel p {
+  font-size: 1.1rem;
+  font-weight: 300;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.overlay-left {
+  transform: translateX(-20%);
+  left: 0;
+}
+
+.overlay-right {
+  right: 0;
+  transform: translateX(0);
+}
+
+.auth-container.right-panel-active .overlay-left {
+  transform: translateX(0);
+}
+
+.auth-container.right-panel-active .overlay-right {
+  transform: translateX(20%);
+}
+
+/* Ghost button */
+button.ghost {
+  background: transparent;
+  border: 2px solid #ffffff;
+  padding: 15px 30px;
+  border-radius: 25px;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  min-width: 160px;
+}
+
+button.ghost:hover {
+  background-color: #ffffff;
+  color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+button.ghost:active {
+  transform: translateY(0);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  .auth-container {
+    width: 100%;
+    max-width: 400px;
+    min-height: auto;
+    flex-direction: column;
+  }
+  
+  .form-container {
+    width: 100%;
+    position: relative;
+    padding: 20px;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  
+  .sign-up-container {
+    display: none;
+  }
+  
+  .auth-container.right-panel-active .sign-in-container {
+    display: none;
+  }
+  
+  .auth-container.right-panel-active .sign-up-container {
+    display: flex;
+  }
+  
+  .overlay-container {
+    display: none;
+  }
+  
+  .overlay-panel h1 {
+    font-size: 1.8rem;
+  }
+}

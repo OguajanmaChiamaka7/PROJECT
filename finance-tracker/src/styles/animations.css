@@ -1,0 +1,43 @@
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-in-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Transition utilities */
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+.transition-colors {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
