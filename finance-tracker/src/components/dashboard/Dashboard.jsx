@@ -148,7 +148,7 @@ const Dashboard = () => {
     <div className="dashboard-container">
       {/* Debug Components - Remove in production */}
       {/* <WhoAmI /> */}
-      <FirebaseTest />
+      {/* <FirebaseTest /> */}
 
       {/* Error Banner (for non-critical errors) */}
       {error && dashboardData && (

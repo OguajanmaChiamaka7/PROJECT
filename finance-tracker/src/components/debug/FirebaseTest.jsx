@@ -29,7 +29,7 @@ const FirebaseTest = () => {
       border: '2px solid #3b82f6',
       borderRadius: '8px',
       margin: '20px 0',
-      backgroundColor: '#eff6ff'
+      backgroundColor: '#0e3a73ff'
     }}>
       <h3>🔧 Firebase Test Component</h3>
 
