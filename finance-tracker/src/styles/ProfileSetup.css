@@ -14,10 +14,10 @@
 .profile-card {
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   padding: 2rem;
-  max-width: 500px;
-  width: 100%;
+  max-width: 850px !important;
+  width: 100% !important;
   text-align: center;
   animation: fadeIn 0.5s ease-in-out;
 }
@@ -40,6 +40,7 @@
   border: 2px solid #d1d5db;
   border-radius: 12px;
   padding: 0.8rem 1rem;
+  color: #065f46;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -53,8 +54,8 @@
 
 .option-btn.selected {
   border-color: #10b981; /* emerald green to match background */
-  background: #ecfdf5;  /* very light green tint */
-  color: #065f46;       /* deep emerald text */
+  background: #ecfdf5; /* very light green tint */
+  color: #065f46; /* deep emerald text */
   font-weight: bold;
 }
 
@@ -66,7 +67,7 @@
 
 .next-btn {
   margin-top: 1rem;
- background: linear-gradient(135deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #10b981, #34d399);
   color: white;
   font-weight: bold;
   border: none;
@@ -83,7 +84,7 @@
 
 .next-btn:hover:enabled {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(147,51,234,0.4);
+  box-shadow: 0 5px 15px rgba(147, 51, 234, 0.4);
 }
 
 .progress-bar {
@@ -105,10 +106,16 @@
 .progress-text {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: transparent !important;
 }
 
 @keyframes fadeIn {
-  from {opacity: 0; transform: translateY(20px);}
-  to {opacity: 1; transform: translateY(0);}
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

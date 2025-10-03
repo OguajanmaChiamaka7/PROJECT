@@ -1,240 +1,144 @@
-import React, { useState, useEffect } from 'react';
+// import React, { useState, useEffect } from 'react';
+// import { db } from '../../services/firebase';
+// import {
+//   collection,
+//   doc,
+//   addDoc,
+//   updateDoc,
+//   onSnapshot,
+//   query,
+//   orderBy,
+//   limit,
+//   serverTimestamp,
+//   increment,
+//   arrayUnion,
+//   where
+// } from 'firebase/firestore';
+// import { useAuth } from '../../context/AuthContext';
+// import { useGamification } from '../../context/GamificationContext';
+// import './Community.css';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Plus, Send, TrendingUp, Users, Award, MessageCircle, ArrowLeft, Check, CheckCheck, Flame, Target, Trophy, Star, Zap, Crown } from 'lucide-react';
+import './Community.css';
 import { db } from '../../services/firebase';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  serverTimestamp,
-  increment,
-  arrayUnion,
-  where
-} from 'firebase/firestore';
+import { collection, doc, addDoc, updateDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import { useGamification } from '../../context/GamificationContext';
-import './Community.css';
 
 const CommunitySavingsApp = () => {
-  const { currentUser } = useAuth();
-  const { userStats, addXP } = useGamification();
-  const [activeTab, setActiveTab] = useState('status');
+  const [activeTab, setActiveTab] = useState('chats');
+  const [selectedChat, setSelectedChat] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusText, setStatusText] = useState('');
-  const [includeChart, setIncludeChart] = useState(false);
-  const [includeStreak, setIncludeStreak] = useState(false);
-
-  // Firebase state
-  const [statusUpdates, setStatusUpdates] = useState([]);
-  const [savingsCircles, setSavingsCircles] = useState([]);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [showCreateCircle, setShowCreateCircle] = useState(false);
   const [newMessage, setNewMessage] = useState('');
-  const [onlineCount, setOnlineCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [statusText, setStatusText] = useState('');
+  const chatEndRef = useRef(null);
 
-  // Firebase listeners and data fetching
+  // Mock data - replace with Firebase data
+  const [myStatus, setMyStatus] = useState({
+    viewed: false,
+    hasStatus: true,
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    progress: 65,
+    saved: 325000,
+    goal: 500000,
+    streak: 12
+  });
+
+  const [statuses, setStatuses] = useState([
+    {
+      id: 1,
+      userName: 'Sarah Johnson',
+      avatar: '👩',
+      timestamp: new Date(Date.now() - 30 * 60 * 1000),
+      viewed: false,
+      progress: 80,
+      saved: 800000,
+      goal: 1000000,
+      streak: 30,
+      text: 'Just hit 80% of my goal! Consistency is key!'
+    },
+    {
+      id: 2,
+      userName: 'Michael Chen',
+      avatar: '👨',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      viewed: true,
+      progress: 45,
+      saved: 225000,
+      goal: 500000,
+      streak: 15,
+      text: 'Halfway there! Small wins add up.'
+    }
+  ]);
+
+  const [savingsCircles, setSavingsCircles] = useState([
+    {
+      id: 1,
+      name: 'Family Vacation Fund',
+      icon: '✈️',
+      members: 5,
+      lastMessage: 'Great job everyone! We are 75% there',
+      timestamp: new Date(Date.now() - 10 * 60 * 1000),
+      unread: 3,
+      progress: 75,
+      currentAmount: 750000,
+      goalAmount: 1000000,
+      messages: [
+        { id: 1, userId: 'other', userName: 'John', text: 'Just added my contribution for this month!', timestamp: new Date(Date.now() - 60 * 60 * 1000), read: true },
+        { id: 2, userId: 'me', text: 'Amazing! We are making great progress', timestamp: new Date(Date.now() - 30 * 60 * 1000), read: true },
+        { id: 3, userId: 'other', userName: 'Sarah', text: 'Great job everyone! We are 75% there', timestamp: new Date(Date.now() - 10 * 60 * 1000), read: false }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Emergency Fund Squad',
+      icon: '🏥',
+      members: 8,
+      lastMessage: 'Remember to save this week!',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      unread: 0,
+      progress: 60,
+      currentAmount: 480000,
+      goalAmount: 800000,
+      messages: [
+        { id: 1, userId: 'other', userName: 'Mike', text: 'This is such a great idea!', timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), read: true },
+        { id: 2, userId: 'other', userName: 'Lisa', text: 'Remember to save this week!', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), read: true }
+      ]
+    },
+    {
+      id: 3,
+      name: 'New Business Fund',
+      icon: '💼',
+      members: 3,
+      lastMessage: 'You: Added my weekly contribution',
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      unread: 0,
+      progress: 35,
+      currentAmount: 175000,
+      goalAmount: 500000,
+      messages: [
+        { id: 1, userId: 'me', text: 'Added my weekly contribution', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), read: true }
+      ]
+    }
+  ]);
+
+  const [leaderboard, setLeaderboard] = useState([
+    { rank: 1, name: 'You', level: 12, xp: 2450, avatar: '🎯', isYou: true },
+    { rank: 2, name: 'Sarah Johnson', level: 11, xp: 2200, avatar: '👩' },
+    { rank: 3, name: 'Michael Chen', level: 10, xp: 1980, avatar: '👨' },
+    { rank: 4, name: 'Lisa Wang', level: 9, xp: 1750, avatar: '👱‍♀️' },
+    { rank: 5, name: 'David Kim', level: 8, xp: 1520, avatar: '👨‍💼' }
+  ]);
+
   useEffect(() => {
-    if (!currentUser) return;
-
-    const unsubscribers = [];
-
-    // Listen to status updates
-    const statusQuery = query(
-      collection(db, 'communityStatus'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    unsubscribers.push(
-      onSnapshot(statusQuery, (snapshot) => {
-        const updates = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
-        }));
-        setStatusUpdates(updates);
-      })
-    );
-
-    // Listen to savings circles
-    const circlesQuery = query(
-      collection(db, 'savingsCircles'),
-      where('members', 'array-contains', currentUser.uid)
-    );
-    unsubscribers.push(
-      onSnapshot(circlesQuery, (snapshot) => {
-        const circles = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setSavingsCircles(circles);
-      })
-    );
-
-    // Listen to chat messages
-    const chatQuery = query(
-      collection(db, 'communityChat'),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-    unsubscribers.push(
-      onSnapshot(chatQuery, (snapshot) => {
-        const messages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate()
-        })).reverse();
-        setChatMessages(messages);
-      })
-    );
-
-    // Listen to leaderboard
-    const leaderboardQuery = query(
-      collection(db, 'users'),
-      orderBy('xp', 'desc'),
-      limit(10)
-    );
-    unsubscribers.push(
-      onSnapshot(leaderboardQuery, (snapshot) => {
-        const leaders = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setLeaderboard(leaders);
-      })
-    );
-
-    // Listen to online users count
-    const onlineQuery = query(
-      collection(db, 'users'),
-      where('lastActive', '>', new Date(Date.now() - 5 * 60 * 1000)) // Last 5 minutes
-    );
-    unsubscribers.push(
-      onSnapshot(onlineQuery, (snapshot) => {
-        setOnlineCount(snapshot.docs.length);
-      })
-    );
-
-    setLoading(false);
-
-    return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
-    };
-  }, [currentUser]);
-
-  // Firebase functions
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUser) return;
-
-    try {
-      await addDoc(collection(db, 'communityChat'), {
-        text: newMessage,
-        userId: currentUser.uid,
-        userName: currentUser.displayName || 'Anonymous',
-        avatar: '🎯',
-        createdAt: serverTimestamp()
-      });
-
-      setNewMessage('');
-
-      // Award XP for community engagement
-      await addXP(5, 'Sent community message');
-    } catch (error) {
-      console.error('Error sending message:', error);
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  };
-
-  const createStatusUpdate = async () => {
-    if (!statusText.trim() || !currentUser) return;
-
-    try {
-      const statusData = {
-        text: statusText,
-        userId: currentUser.uid,
-        userName: currentUser.displayName || 'Anonymous',
-        userLevel: userStats.level,
-        avatar: '🎯',
-        includeChart,
-        includeStreak,
-        reactions: {
-          heart: 0,
-          fire: 0,
-          clap: 0
-        },
-        comments: [],
-        createdAt: serverTimestamp()
-      };
-
-      if (includeChart) {
-        statusData.progressData = {
-          current: userStats.totalSaved || 0,
-          goal: userStats.savingsGoal || 100000
-        };
-      }
-
-      if (includeStreak) {
-        statusData.streakData = {
-          days: userStats.savingStreak || 0,
-          amount: userStats.dailySavingAmount || 500
-        };
-      }
-
-      await addDoc(collection(db, 'communityStatus'), statusData);
-
-      // Award XP for sharing progress
-      await addXP(10, 'Shared progress update');
-
-      setStatusText('');
-      setIncludeChart(false);
-      setIncludeStreak(false);
-      setShowStatusModal(false);
-    } catch (error) {
-      console.error('Error creating status update:', error);
-    }
-  };
-
-  const reactToPost = async (postId, reactionType) => {
-    if (!currentUser) return;
-
-    try {
-      const postRef = doc(db, 'communityStatus', postId);
-      await updateDoc(postRef, {
-        [`reactions.${reactionType}`]: increment(1),
-        [`reactedUsers.${reactionType}`]: arrayUnion(currentUser.uid)
-      });
-    } catch (error) {
-      console.error('Error reacting to post:', error);
-    }
-  };
-
-  const joinSavingsCircle = async (circleId) => {
-    if (!currentUser) return;
-
-    try {
-      const circleRef = doc(db, 'savingsCircles', circleId);
-      await updateDoc(circleRef, {
-        members: arrayUnion(currentUser.uid),
-        memberCount: increment(1)
-      });
-
-      await addXP(15, 'Joined savings circle');
-    } catch (error) {
-      console.error('Error joining circle:', error);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  }, [selectedChat, newMessage]);
 
   const formatTimeAgo = (date) => {
-    if (!date) return 'now';
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
@@ -242,361 +146,324 @@ const CommunitySavingsApp = () => {
     const days = Math.floor(diff / 86400000);
 
     if (minutes < 1) return 'now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days === 1) return 'Yesterday';
+    return `${days}d`;
   };
 
-  if (loading) {
-    return (
-      <div className="community-savings-app loading">
-        <div className="loading-spinner"></div>
-        <p>Loading community...</p>
-      </div>
-    );
-  }
+  const handleSendMessage = () => {
+    if (!newMessage.trim() || !selectedChat) return;
 
-  const StatusUpdatesTab = () => (
-    <div className="tab-content">
-      <div className="status-header">
-        <h2>💫 Community Status Updates</h2>
-        <button className="add-status-btn" onClick={() => setShowStatusModal(true)}>
-          + Share Your Progress
-        </button>
-      </div>
+    const updatedCircles = savingsCircles.map(circle => {
+      if (circle.id === selectedChat.id) {
+        return {
+          ...circle,
+          messages: [...circle.messages, {
+            id: circle.messages.length + 1,
+            userId: 'me',
+            text: newMessage,
+            timestamp: new Date(),
+            read: false
+          }],
+          lastMessage: `You: ${newMessage}`,
+          timestamp: new Date()
+        };
+      }
+      return circle;
+    });
 
-      <div className="status-stories">
-        <div className="story-item your-story" onClick={() => setShowStatusModal(true)}>
-          <div className="story-ring">
-            <div className="avatar you-avatar">🎯</div>
+    setSavingsCircles(updatedCircles);
+    setSelectedChat(updatedCircles.find(c => c.id === selectedChat.id));
+    setNewMessage('');
+  };
+
+  const StatusesTab = () => (
+    <div className="statuses-container">
+      <div className="my-status-container" onClick={() => setShowStatusModal(true)}>
+        <div className={`status-ring ${myStatus.hasStatus && !myStatus.viewed ? 'unviewed' : 'viewed'}`}>
+          <div className="status-avatar my-avatar">
+            <Camera size={20} color="white" />
           </div>
-          <span>Your Story</span>
         </div>
-
-        {statusUpdates.slice(0, 4).map(update => (
-          <div key={update.id} className="story-item viewed">
-            <div className="story-ring viewed">
-              <div className="avatar">{update.avatar}</div>
-            </div>
-            <span>{update.userName?.split(' ')[0]}</span>
-          </div>
-        ))}
+        <div className="status-info">
+          <h3>My Status</h3>
+          <p>{myStatus.hasStatus ? formatTimeAgo(myStatus.timestamp) : 'Tap to add status update'}</p>
+        </div>
+        <Plus size={20} color="#10b981" />
       </div>
 
-      <div className="status-feed">
-        {statusUpdates.length === 0 ? (
-          <div className="empty-state">
-            <p>No status updates yet. Be the first to share your progress!</p>
-          </div>
-        ) : (
-          statusUpdates.map(update => (
-            <div key={update.id} className="status-update">
-              <div className="status-header-info">
-                <div className="avatar">{update.avatar}</div>
-                <div className="status-info">
-                  <h3>{update.userName}</h3>
-                  <span className="time">{formatTimeAgo(update.createdAt)}</span>
-                </div>
-                <span className="level-badge">Level {update.userLevel || 1}</span>
-              </div>
-              <div className="status-content">
-                <p>{update.text}</p>
-                {update.progressData && (
-                  <div className="progress-visual">
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{width: `${(update.progressData.current / update.progressData.goal) * 100}%`}}
-                      ></div>
-                    </div>
-                    <span>₦{update.progressData.current?.toLocaleString()} / ₦{update.progressData.goal?.toLocaleString()}</span>
-                  </div>
-                )}
-                {update.streakData && (
-                  <div className="streak-visual">
-                    <div className="streak-counter">🔥 {update.streakData.days} Day Streak</div>
-                    <div className="daily-amount">₦{update.streakData.amount}/day</div>
-                  </div>
-                )}
-              </div>
-              <div className="status-reactions">
-                <button
-                  className="reaction-btn"
-                  onClick={() => reactToPost(update.id, 'heart')}
-                >
-                  ❤️ {update.reactions?.heart || 0}
-                </button>
-                <button
-                  className="reaction-btn"
-                  onClick={() => reactToPost(update.id, 'fire')}
-                >
-                  🔥 {update.reactions?.fire || 0}
-                </button>
-                <button
-                  className="reaction-btn"
-                  onClick={() => reactToPost(update.id, 'clap')}
-                >
-                  👏 {update.reactions?.clap || 0}
-                </button>
-                <button className="comment-btn">💬 Comment</button>
-              </div>
-            </div>
-          ))
-        )}
+      <div className="recent-updates-label">
+        <p>Recent updates</p>
       </div>
+
+      {statuses.map(status => (
+        <div key={status.id} className="status-item" onClick={() => alert('View status')}>
+          <div className={`status-ring ${!status.viewed ? 'unviewed' : 'viewed'}`}>
+            <div className="status-avatar">{status.avatar}</div>
+          </div>
+          <div className="status-info">
+            <h3>{status.userName}</h3>
+            <p>{formatTimeAgo(status.timestamp)}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 
-  const SavingsCirclesTab = () => (
-    <div className="tab-content">
-      <div className="circles-header">
-        <h2>🔄 Your Savings Circles</h2>
-        <button className="create-circle-btn">+ Create Circle</button>
-      </div>
-
-      <div className="circles-grid">
-        {savingsCircles.length === 0 ? (
-          <div className="empty-state">
-            <p>You haven't joined any savings circles yet. Create one or join existing circles to start saving together!</p>
+  const ChatsTab = () => (
+    <div className="chats-container">
+      {savingsCircles.map(circle => (
+        <div
+          key={circle.id}
+          className="chat-item"
+          onClick={() => setSelectedChat(circle)}
+        >
+          <div className="chat-avatar">{circle.icon}</div>
+          <div className="chat-info">
+            <div className="chat-header">
+              <h3>{circle.name}</h3>
+              <span className="chat-time">{formatTimeAgo(circle.timestamp)}</span>
+            </div>
+            <div className="chat-preview">
+              <p>{circle.lastMessage}</p>
+              {circle.unread > 0 && (
+                <div className="unread-badge">{circle.unread}</div>
+              )}
+            </div>
           </div>
-        ) : (
-          savingsCircles.map(circle => {
-            const userContribution = circle.contributions?.[currentUser?.uid] || 0;
-            const progressPercentage = (circle.currentAmount / circle.goalAmount) * 100;
+        </div>
+      ))}
 
-            return (
-              <div key={circle.id} className="circle-card">
-                <div className="circle-header">
-                  <h3>{circle.icon} {circle.name}</h3>
-                  <span className="members-count">{circle.memberCount || circle.members?.length || 0} members</span>
-                </div>
-                <div className="circle-progress">
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{width: `${Math.min(progressPercentage, 100)}%`}}></div>
-                  </div>
-                  <div className="progress-text">
-                    <span className="current">₦{(circle.currentAmount || 0).toLocaleString()}</span>
-                    <span className="goal">Goal: ₦{(circle.goalAmount || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="your-contribution">
-                    Your contribution: ₦{userContribution.toLocaleString()}
-                  </div>
-                </div>
-                <div className="circle-actions">
-                  <button className="contribute-btn">💰 Contribute</button>
-                  <button className="chat-btn">💬 Group Chat</button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+      <button className="fab" onClick={() => setShowCreateCircle(true)}>
+        <Plus size={24} color="white" />
+      </button>
     </div>
   );
 
   const LeaderboardTab = () => (
-    <div className="tab-content">
+    <div className="leaderboard-container">
       <div className="leaderboard-header">
-        <h2>🏆 Community Leaderboard</h2>
-        <div className="leaderboard-period">
-          <button className="period-btn active">This Month</button>
-          <button className="period-btn">All Time</button>
-        </div>
+        <h2>Top Savers This Month</h2>
+        <Award size={24} color="#10b981" />
       </div>
-
-      <div className="leaderboard-list">
-        {leaderboard.length === 0 ? (
-          <div className="empty-state">
-            <p>Leaderboard is loading...</p>
+      
+      {leaderboard.map(user => (
+        <div key={user.rank} className={`leaderboard-item ${user.isYou ? 'you' : ''}`}>
+          <div className={`rank-badge ${user.rank <= 3 ? `top-${user.rank}` : ''}`}>
+            {user.rank}
           </div>
-        ) : (
-          leaderboard.map((user, index) => {
-            const isCurrentUser = user.id === currentUser?.uid;
-            const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
-
-            return (
-              <div key={user.id} className={`leaderboard-item ${rankClass} ${isCurrentUser ? 'you' : ''}`}>
-                <div className="rank-number">{index + 1}</div>
-                <div className={`avatar ${isCurrentUser ? 'you-avatar' : ''}`}>
-                  {isCurrentUser ? '🎯' : '😊'}
-                </div>
-                <div className="player-info">
-                  <h3>{isCurrentUser ? 'You' : user.displayName || 'Anonymous'}</h3>
-                  <span className="level">Level {user.level || 1}</span>
-                </div>
-                <div className="xp-amount">{(user.xp || 0).toLocaleString()} XP</div>
-              </div>
-            );
-          })
-        )}
-      </div>
+          <div className="user-avatar">{user.avatar}</div>
+          <div className="user-info">
+            <h3>{user.name}</h3>
+            <p>Level {user.level}</p>
+          </div>
+          <div className="xp-badge">{user.xp.toLocaleString()} XP</div>
+        </div>
+      ))}
     </div>
   );
 
-  const ChatTab = () => (
-    <div className="tab-content">
-      <div className="chat-header">
-        <h2>💬 Community Chat</h2>
-        <div className="online-count">🟢 {onlineCount} online</div>
-      </div>
+  const ChatView = () => {
+    if (!selectedChat) return null;
 
-      <div className="chat-container">
+    return (
+      <div className="chat-view">
+        <div className="chat-view-header">
+          <button className="back-btn" onClick={() => setSelectedChat(null)}>←</button>
+          <div className="chat-avatar">{selectedChat.icon}</div>
+          <div className="chat-header-info">
+            <h3>{selectedChat.name}</h3>
+            <p>{selectedChat.members} members</p>
+          </div>
+        </div>
+
+        <div className="progress-banner">
+          <div className="progress-info">
+            <TrendingUp size={16} color="#10b981" />
+            <span>₦{selectedChat.currentAmount.toLocaleString()} / ₦{selectedChat.goalAmount.toLocaleString()}</span>
+          </div>
+          <div className="progress-bar-mini">
+            <div className="progress-fill-mini" style={{ width: `${selectedChat.progress}%` }} />
+          </div>
+        </div>
+
         <div className="chat-messages">
-          {chatMessages.length === 0 ? (
-            <div className="empty-state">
-              <p>No messages yet. Start the conversation!</p>
-            </div>
-          ) : (
-            chatMessages.map((message) => {
-              const isCurrentUser = message.userId === currentUser?.uid;
-              return (
-                <div key={message.id} className={`message ${isCurrentUser ? 'your-message' : 'other-message'}`}>
-                  {!isCurrentUser && <div className="avatar">{message.avatar}</div>}
-                  <div className="message-content">
-                    <div className="message-header">
-                      <span className="sender">{isCurrentUser ? 'You' : message.userName}</span>
-                      <span className="time">{formatTimeAgo(message.createdAt)}</span>
-                    </div>
-                    <p>{message.text}</p>
-                  </div>
-                  {isCurrentUser && <div className="avatar you-avatar">{message.avatar}</div>}
+          {selectedChat.messages.map(msg => (
+            <div key={msg.id} className={`message ${msg.userId === 'me' ? 'my-message' : 'other-message'}`}>
+              {msg.userId !== 'me' && <p className="message-sender">{msg.userName}</p>}
+              <div className="message-bubble">
+                <p>{msg.text}</p>
+                <div className="message-meta">
+                  <span>{formatTimeAgo(msg.timestamp)}</span>
+                  {msg.userId === 'me' && (
+                    msg.read ? <CheckCheck size={14} color="#10b981" /> : <Check size={14} color="#9ca3af" />
+                  )}
                 </div>
-              );
-            })
-          )}
+              </div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
         </div>
 
-        <div className="chat-input-container">
-          <div className="chat-input-wrapper">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              disabled={!currentUser}
-            />
-            <button
-              onClick={sendMessage}
-              className="send-btn"
-              disabled={!currentUser || !newMessage.trim()}
-            >
-              📤
-            </button>
-          </div>
+        <div className="chat-input">
+          <button className="attach-btn">
+            <Plus size={20} color="#10b981" />
+          </button>
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Type a message..."
+          />
+          <button className="send-btn" onClick={handleSendMessage} disabled={!newMessage.trim()}>
+            <Send size={20} color="white" />
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const StatusModal = () => (
-    showStatusModal && (
-      <div className="modal">
-        <div className="modal-content">
+  const StatusModal = () => {
+    if (!showStatusModal) return null;
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h2>📊 Share Your Progress</h2>
-            <button className="close-btn" onClick={() => setShowStatusModal(false)}>×</button>
+            <h2>Share Your Progress</h2>
+            <button onClick={() => setShowStatusModal(false)}>✕</button>
           </div>
           <div className="modal-body">
+            <div className="status-preview">
+              <div className="progress-card">
+                <div className="progress-circle">
+                  <svg viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="3"
+                      strokeDasharray={`${myStatus.progress}, 100`}
+                    />
+                  </svg>
+                  <div className="progress-text">{myStatus.progress}%</div>
+                </div>
+                <div className="progress-details">
+                  <p className="saved-amount">₦{myStatus.saved.toLocaleString()}</p>
+                  <p className="goal-amount">Goal: ₦{myStatus.goal.toLocaleString()}</p>
+                  <div className="streak-badge">
+                    🔥 {myStatus.streak} day streak
+                  </div>
+                </div>
+              </div>
+            </div>
             <textarea
-              placeholder="What's your savings update? Share your progress, goals, or milestones!"
-              rows="4"
+              placeholder="Add a caption... (optional)"
               value={statusText}
               onChange={(e) => setStatusText(e.target.value)}
-            ></textarea>
-            <div className="modal-options">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeChart}
-                  onChange={(e) => setIncludeChart(e.target.checked)}
-                /> Include progress chart
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeStreak}
-                  onChange={(e) => setIncludeStreak(e.target.checked)}
-                /> Add savings streak
-              </label>
-            </div>
+              rows={3}
+            />
           </div>
           <div className="modal-actions">
-            <button className="cancel-btn" onClick={() => setShowStatusModal(false)}>Cancel</button>
-            <button
-              className="post-btn"
-              onClick={createStatusUpdate}
-              disabled={!statusText.trim()}
-            >
-              📸 Post Update
+            <button className="cancel-btn" onClick={() => setShowStatusModal(false)}>
+              Cancel
+            </button>
+            <button className="share-btn" onClick={() => {
+              alert('Status shared!');
+              setShowStatusModal(false);
+              setStatusText('');
+            }}>
+              Share Status
             </button>
           </div>
         </div>
       </div>
-    )
-  );
+    );
+  };
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'status':
-        return <StatusUpdatesTab />;
-      case 'circles':
-        return <SavingsCirclesTab />;
-      case 'leaderboard':
-        return <LeaderboardTab />;
-      case 'chat':
-        return <ChatTab />;
-      default:
-        return <StatusUpdatesTab />;
-    }
+  const CreateCircleModal = () => {
+    if (!showCreateCircle) return null;
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowCreateCircle(false)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Create Savings Circle</h2>
+            <button onClick={() => setShowCreateCircle(false)}>✕</button>
+          </div>
+          <div className="modal-body">
+            <input type="text" placeholder="Circle name" className="input-field" />
+            <input type="text" placeholder="Goal amount (₦)" className="input-field" />
+            <textarea placeholder="Description" rows={3} />
+          </div>
+          <div className="modal-actions">
+            <button className="cancel-btn" onClick={() => setShowCreateCircle(false)}>
+              Cancel
+            </button>
+            <button className="share-btn" onClick={() => {
+              alert('Circle created!');
+              setShowCreateCircle(false);
+            }}>
+              Create Circle
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="community-savings-app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-content">
-          <h1>💰 CommunitySave</h1>
-          <div className="user-profile">
-            <div className="avatar you-avatar">🎯</div>
-            <span>{currentUser?.displayName || 'You'} (Level {userStats.level})</span>
+    <div className="app-container">
+      {selectedChat ? (
+        <ChatView />
+      ) : (
+        <>
+          <div className="app-header">
+            <h1>MoniUp Community</h1>
           </div>
-        </div>
-      </header>
 
-      {/* Navigation */}
-      <nav className="nav-tabs">
-        <button 
-          className={`nav-tab ${activeTab === 'status' ? 'active' : ''}`}
-          onClick={() => setActiveTab('status')}
-        >
-          📊 Status Updates
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'circles' ? 'active' : ''}`}
-          onClick={() => setActiveTab('circles')}
-        >
-          🔄 Savings Circles
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'leaderboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('leaderboard')}
-        >
-          🏆 Leaderboard
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'chat' ? 'active' : ''}`}
-          onClick={() => setActiveTab('chat')}
-        >
-          💬 Community Chat
-        </button>
-      </nav>
+          <div className="tab-bar">
+            <button
+              className={`tab ${activeTab === 'chats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chats')}
+            >
+              <MessageCircle size={20} />
+              <span>Circles</span>
+            </button>
+            <button
+              className={`tab ${activeTab === 'status' ? 'active' : ''}`}
+              onClick={() => setActiveTab('status')}
+            >
+              <TrendingUp size={20} />
+              <span>Status</span>
+            </button>
+            <button
+              className={`tab ${activeTab === 'leaderboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('leaderboard')}
+            >
+              <Award size={20} />
+              <span>Leaderboard</span>
+            </button>
+          </div>
 
-      {/* Tab Content */}
-      {renderActiveTab()}
+          <div className="tab-content">
+            {activeTab === 'chats' && <ChatsTab />}
+            {activeTab === 'status' && <StatusesTab />}
+            {activeTab === 'leaderboard' && <LeaderboardTab />}
+          </div>
+        </>
+      )}
 
-      {/* Status Modal */}
       <StatusModal />
+      <CreateCircleModal />
     </div>
   );
 };

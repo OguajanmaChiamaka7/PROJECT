@@ -43,12 +43,8 @@ const Home = () => {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true); // Add this line
 
   // Mock data for demonstration
-  const accountBalance = 12450;
-  const savingsGoal = 50000;
   const xpPoints = 2340;
-  const level = 5;
-  const weeklySpent = 3200;
-  const monthlyBudget = 15000;
+  const level = 1;
 
   // Features carousel data
   const features = [
@@ -116,12 +112,6 @@ const Home = () => {
     { id: 2, type: "withdrawal", amount: -450, description: "Grocery Shopping", date: "Yesterday" },
     { id: 3, type: "deposit", amount: 1200, description: "Freelance Payment", date: "2 days ago" },
     { id: 4, type: "withdrawal", amount: -300, description: "Transportation", date: "3 days ago" }
-  ];
-
-  const savingsCircles = [
-    { id: 1, name: "Emergency Fund", members: 12, target: 100000, current: 45000, yourContribution: 8500 },
-    { id: 2, name: "Vacation Squad", members: 8, target: 200000, current: 120000, yourContribution: 15000 },
-    { id: 3, name: "Investment Club", members: 25, target: 500000, current: 180000, yourContribution: 7200 }
   ];
 
   const leaderboard = [
@@ -215,10 +205,6 @@ const Home = () => {
         <div className="main-content">
           {/* Hero Section */}
           <div className="hero">
-            <div className="level-badge">
-              <Zap className="icon" style={{ marginRight: '8px' }} />
-              Level {level} • {xpPoints.toLocaleString()} XP
-            </div>
             
             <h1 className="hero-title">
               MoniUp! Your Game 
@@ -338,46 +324,27 @@ const Home = () => {
               {recentTransactions.map((transaction) => (
                 <div key={transaction.id} className="transaction-item">
                   <div className="transaction-left">
-                    <div className={`transaction-icon ${transaction.type}`}>
-                      {transaction.type === 'deposit' ? 
-                        <TrendingUp className="icon" /> : 
-                        <TrendingDown className="icon" />
-                      }
-                    </div>
-                    <div className="transaction-details">
+                      {/* <div className={`transaction-icon ${transaction.type}`}>
+                        {transaction.type === 'deposit' ? 
+                          <TrendingUp className="icon" /> : 
+                          <TrendingDown className="icon" />
+                        }
+                      </div> */}
+                    {/* <div className="transaction-details">
                       <h4>{transaction.description}</h4>
                       <p>{transaction.date}</p>
-                    </div>
+                    </div> */}
                   </div>
-                  <div className="transaction-amount">
+                  {/* <div className="transaction-amount">
                     <span className={`amount ${transaction.amount > 0 ? 'positive' : 'negative'}`}>
                       {transaction.amount > 0 ? '+' : ''}₦{Math.abs(transaction.amount).toLocaleString()}
                     </span>
-                  </div>
+                  </div> */}
                 </div>
               ))}
             </div>
 
-            {/* Leaderboard */}
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title" style={{ fontSize: '22px' }}>Leaderboard</h3>
-                <Award className="card-icon" style={{ color: '#d97706' }} />
-              </div>
-              {leaderboard.map((user, index) => (
-                <div key={user.id} className="leaderboard-item">
-                  <div className={`leaderboard-rank ${index < 3 ? 'top3' : ''}`}>
-                    {index + 1}
-                  </div>
-                  <div className="leaderboard-avatar">{user.avatar}</div>
-                  <div className="leaderboard-info">
-                    <div className="leaderboard-name">{user.name}</div>
-                    <div className="leaderboard-level">Level {user.level}</div>
-                  </div>
-                  <div className="leaderboard-xp">{user.xp.toLocaleString()} XP</div>
-                </div>
-              ))}
-            </div>
+           
           </div>
 
           {/* Features Section */}

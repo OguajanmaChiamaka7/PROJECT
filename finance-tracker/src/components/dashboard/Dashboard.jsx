@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet, PiggyBank, Target, Zap, TrendingUp, Award, Calendar, AlertCircle, RefreshCw } from 'lucide-react';
+import { Wallet, PiggyBank, Target, Zap, TrendingUp, Award, Calendar, AlertCircle, RefreshCw, BookOpen} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTransaction } from '../../context/TransactionContext';
 import { useGoals } from '../../context/GoalsContext';
+import Badges, { BadgesRow } from '../gamification/Badges';
 import { useGamification } from '../../context/GamificationContext';
 import { DashboardService } from '../../services/dashboardService';
 import StatsCard from './StatsCard';
@@ -12,6 +13,7 @@ import DailyTasks from './DailyTasks';
 import QuickActions from './QuickActions';
 import WhoAmI from '../debug/WhoAmI';
 import FirebaseTest from '../debug/FirebaseTest';
+import { checkProfileCompleted } from "../../services/firestore";
 import '../../styles/dashboard.css';
 
 const Dashboard = () => {
@@ -22,28 +24,49 @@ const Dashboard = () => {
 
   // Dashboard state
   const [dashboardData, setDashboardData] = useState(null);
+  const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  // Load dashboard data
-  const loadDashboardData = async () => {
-    if (!currentUser?.uid) return;
+  //  XP + Badges calculation
+  const xpFromStats = profileData?.xp || userStats?.xp || 0;
+  const badgesEarned = profileData?.badges || [];
+  const badgeXP = badgesEarned.length * 60;   // each badge worth 60xp
+  const totalXP = xpFromStats + badgeXP;      // final XP with badges
 
-    try {
-      setLoading(true);
-      setError(null);
+// Load dashboard data
+const loadDashboardData = async () => {
+  try {
+    console.log("🚀 Loading dashboard data...");
+    setLoading(true);
 
-      const data = await DashboardService.getDashboardData(currentUser.uid);
-      setDashboardData(data);
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError(err.message || 'Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Stats, analytics, etc.
+    const data = await DashboardService.getDashboardData(currentUser.uid);
+    console.log("✅ Dashboard data:", data);
+
+    // User profile
+    const userProfile = await checkProfileCompleted(currentUser.uid);
+    console.log("✅ User profile:", userProfile);
+
+    // Merge results
+    setDashboardData(data);
+    setProfileData({
+      ...userProfile,
+      xp: userProfile?.xp ?? 0,
+      level: userProfile?.level ?? 1,
+      badges: userProfile?.badges ?? [],
+      financialGoal: userProfile?.financialGoal ?? "No goal set yet",
+    });
+
+  } catch (error) {
+    console.error("❌ Error loading dashboard:", error);
+    setError("Failed to load dashboard data. Please try again.");
+  } finally {
+    console.log("🔄 Done loading");
+    setLoading(false);
+  }
+};
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -61,6 +84,8 @@ const Dashboard = () => {
     }
   }, [currentUser?.uid]);
 
+
+
   // Get stats from dashboard data or fallback to context data
   const stats = dashboardData?.stats || {};
   const balance = stats.balance || currentUser?.balance || 0;
@@ -74,6 +99,9 @@ const Dashboard = () => {
   const expenseChange = stats.expenseChange || 0;
   const incomeChange = stats.incomeChange || 0;
   const savingsProgressChange = stats.savingsChange || 5.2; // Fallback
+
+
+
 
   const quickStatsData = [
     {
@@ -161,23 +189,62 @@ const Dashboard = () => {
         </div>
       )}
 
+    
+
       {/* Welcome Header */}
       <div className="dashboard-header">
-        <div className="welcome-section">
-          <h1 className="welcome-title">
-            Welcome back, {dashboardData?.userProfile?.displayName || currentUser?.displayName || 'User'}! 👋
-          </h1>
-          <p className="welcome-subtitle">
-            Level {stats.level || userStats.level || 1} • {(stats.xp || userStats.xp || 0).toLocaleString()} XP •
-            {stats.completedTasks > 0 && ` ${stats.completedTasks}/${stats.totalTasks} tasks completed •`}
-            {' '}Here's your financial overview today.
-          </p>
-          {dashboardData?.lastUpdated && (
-            <p className="last-updated">
-              Last updated: {dashboardData.lastUpdated.toLocaleTimeString()}
-            </p>
-          )}
-        </div>
+  <div className="welcome-section">
+  <h1 className="welcome-title">
+    Welcome back, <span>{profileData?.moneyPersona || dashboardData?.userProfile?.displayName || currentUser?.displayName || user?.name || 'User'}!</span>
+  </h1>  
+  
+  <p className="welcome-subtitle">
+    {/* 🎯 Goal: {profileData?.financialGoal || 'No goal set yet'} •
+    Level {stats.level || userStats.level || 1} • {totalXP.toLocaleString()} XP
+    <br /> */}
+    Here's your financial overview today.
+  </p>
+
+  <div className="dashboard-grid">
+    <div className="dashboard-card">
+      <PiggyBank className="dashboard-icon piggy" />
+      <div>
+        <p className="card-label">Total XP</p>
+        <p className="card-value">{totalXP.toLocaleString()} XP</p>
+      </div>
+    </div>
+
+    <div className="dashboard-card">
+      <Award className="dashboard-icon award" />
+      <div>
+        <p className="card-label">Badges Earned</p>
+        <p className="card-value">{badgesEarned.length}</p>
+      </div>
+    </div>
+
+    <div className="dashboard-card">
+      <Target className="dashboard-icon goal" />
+      <div>
+        <p className="card-label">Current Goal</p>
+        <p className="card-value">{profileData?.financialGoal || 'No goal set yet'}</p>
+      </div>
+    </div>
+
+    <div className="dashboard-card">
+      <BookOpen className="dashboard-icon level" />
+      <div>
+        <p className="card-label">Level</p>
+        <p className="card-value">Level {stats.level || userStats.level || 1}</p>
+      </div>
+    </div>
+  </div>
+
+  {dashboardData?.lastUpdated && (
+    <p className="last-updated">
+      Last updated: {dashboardData.lastUpdated.toLocaleTimeString()}
+    </p>
+  )}
+</div>
         <div className="header-actions">
           <button
             onClick={handleRefresh}

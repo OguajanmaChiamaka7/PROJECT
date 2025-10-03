@@ -195,22 +195,42 @@
 
 /* Dashboard Header */
 .dashboard-header {
-  display: flex;
+  /* display: flex; for better alignment */
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 32px;
 }
 
+
+
 .welcome-section {
   flex: 1;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
+.dashboard-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+
+
 .welcome-title {
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 8px;
+  margin-bottom: 20px;
   background: linear-gradient(135deg, #1f2937, #4b5563);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  
+}
+
+.welcome-title span {
+  background: linear-gradient(135deg, #10b981, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -233,6 +253,7 @@
 .header-actions {
   display: flex;
   align-items: center;
+  margin-top: 10px;
   gap: 16px;
 }
 
@@ -390,17 +411,29 @@
 
 /* Dashboard Cards */
 .dashboard-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
+  /* display: flex; */
+  gap: 12px;
+  border-radius: 12px;
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  border: 2 px solid #10b981;
+  transition: transform 0.3s ease;
 }
 
 .dashboard-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px green;
+  /* border: 2px solid black; */
+}
+
+.dashboard-icon {
+  color: #10b981;
+}
+
+.card-label {
+  /* background: linear-gradient(135deg, #d1fae5, #a7f3d0); */
+  color: #10b981;
+  font-weight: bold;
 }
 
 .card-header {

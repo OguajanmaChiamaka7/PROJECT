@@ -5,6 +5,7 @@ import {
   serverTimestamp, limit, startAfter
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { dailyTasksData } from "../utils/constants";
 
 // ===== USER MANAGEMENT =====
 export const saveUserProfile = async (uid, data) => {
@@ -100,6 +101,16 @@ export const addTransaction = async (uid, transactionData) => {
 
     // Award XP for transaction (10 XP per transaction)
     await updateUserXP(uid, 10);
+
+    // 🏆 Check if this is the user's first transaction
+    const userTransactions = await getUserTransactions(uid, 2);
+    if (userTransactions.length === 1) {
+      await awardBadge(uid, {
+        name: "First Transaction",
+        description: "Congrats on recording your first transaction!",
+        icon: "💸"
+      });
+    }
 
     return { id: docRef.id, ...transaction };
   } catch (error) {
@@ -295,13 +306,137 @@ export const getDailyTasks = async (uid) => {
   }
 };
 
-export const completeTask = async (uid, taskId, xpReward = 25) => {
+// export const completeTask = async (uid, day, taskId, xpReward = 25) => {
+//   try {
+//     const taskRef = doc(db, "users", uid, "dailyTasks", `day${day}`);
+//     const taskSnap = await getDoc(taskRef);
+
+//     if (!taskSnap.exists()) throw new Error("No daily tasks found for this day");
+
+//     const tasks = taskSnap.data().tasks;
+//     const updatedTasks = tasks.map(task =>
+//       task.id === taskId ? { ...task, completed: true, completedAt: serverTimestamp() } : task
+//     );
+
+//     await updateDoc(taskRef, { tasks: updatedTasks });
+
+//     // Award XP
+//     await updateUserXP(uid, xpReward);
+
+//     return true;
+//   } catch (error) {
+//     console.error("Error completing task:", error);
+//     throw error;
+//   }
+// };
+
+// // Function to initialize daily tasks for a user
+// export const initializeUserTasks = async (userId) => {
+//   try {
+//     const tasksCol = collection(db, "users", userId, "dailyTasks");
+ 
+//     for (const dayObj of dailyTasksData) {
+//       const dayDocRef = doc(tasksCol, `day${dayObj.day}`);
+//       await setDoc(dayDocRef, {
+//         tasks: dayObj.tasks,
+//         createdAt: serverTimestamp()
+//       });
+//     }
+
+//     console.log("Daily tasks initialized for user:", userId);
+//   } catch (error) {
+//     console.error("Error initializing daily tasks:", error);
+//   }
+// };
+
+// Initialize daily tasks for a new user
+export const initializeUserTasks = async (userId) => {
   try {
-    const taskRef = doc(db, "dailyTasks", taskId);
-    await updateDoc(taskRef, {
-      completed: true,
-      completedAt: serverTimestamp()
+    const tasksCol = collection(db, "users", userId, "dailyTasks");
+    const startTime = Date.now();
+ 
+    for (const dayObj of dailyTasksData) {
+      const dayDocRef = doc(tasksCol, `day${dayObj.day}`);
+      await setDoc(dayDocRef, {
+        tasks: dayObj.tasks.map(task => ({
+          ...task,
+          completed: false,
+          completedAt: null
+        })),
+        unlockTime: startTime + (dayObj.day - 1) * 24 * 60 * 60 * 1000,
+        createdAt: serverTimestamp()
+      });
+    }
+
+    // Also store the start time in the user's document
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, {
+      tasksStartTime: startTime
     });
+
+    console.log("Daily tasks initialized for user:", userId);
+  } catch (error) {
+    console.error("Error initializing daily tasks:", error);
+    throw error;
+  }
+};
+
+// Fetch all daily tasks for a user
+export const getUserTasks = async (userId) => {
+  try {
+    const tasksCol = collection(db, "users", userId, "dailyTasks");
+    const snapshot = await getDocs(tasksCol);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const tasks = [];
+    snapshot.forEach(doc => {
+      const dayNum = parseInt(doc.id.replace('day', ''));
+      tasks.push({
+        day: dayNum,
+        ...doc.data()
+      });
+    });
+
+    // Sort by day number
+    tasks.sort((a, b) => a.day - b.day);
+    return tasks;
+  } catch (error) {
+    console.error("Error fetching user tasks:", error);
+    throw error;
+  }
+};
+
+// Complete a specific task
+export const completeTask = async (uid, day, taskId, xpReward = 25) => {
+  try {
+    const taskRef = doc(db, "users", uid, "dailyTasks", `day${day}`);
+    const taskSnap = await getDoc(taskRef);
+
+    if (!taskSnap.exists()) {
+      throw new Error("No daily tasks found for this day");
+    }
+
+    const tasks = taskSnap.data().tasks;
+    const taskToComplete = tasks.find(t => t.id === taskId);
+    
+    if (!taskToComplete) {
+      throw new Error("Task not found");
+    }
+
+    if (taskToComplete.completed) {
+      throw new Error("Task already completed");
+    }
+
+    const updatedTasks = tasks.map(task =>
+      task.id === taskId 
+        ? { ...task, completed: true, completedAt: new Date().toISOString() } 
+        : task
+    );
+
+    await updateDoc(taskRef, { tasks: updatedTasks });
 
     // Award XP
     await updateUserXP(uid, xpReward);
@@ -309,6 +444,54 @@ export const completeTask = async (uid, taskId, xpReward = 25) => {
     return true;
   } catch (error) {
     console.error("Error completing task:", error);
+    throw error;
+  }
+};
+
+// Update user XP and handle level ups
+// export const updateUserXP = async (uid, xpToAdd) => {
+//   try {
+//     const userRef = doc(db, "users", uid);
+//     const userSnap = await getDoc(userRef);
+
+//     if (!userSnap.exists()) {
+//       throw new Error("User document not found");
+//     }
+
+//     const userData = userSnap.data();
+//     const currentXP = userData.xp || 0;
+//     const currentLevel = userData.level || 1;
+//     const newXP = currentXP + xpToAdd;
+
+//     // Simple level calculation: every 1000 XP = 1 level
+//     const newLevel = Math.floor(newXP / 1000) + 1;
+
+//     await updateDoc(userRef, {
+//       xp: newXP,
+//       level: newLevel,
+//       updatedAt: serverTimestamp()
+//     });
+
+//     return { newXP, newLevel, leveledUp: newLevel > currentLevel };
+//   } catch (error) {
+//     console.error("Error updating XP:", error);
+//     throw error;
+//   }
+// };
+
+// Get user's start time for task unlocking
+export const getUserTasksStartTime = async (userId) => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      return null;
+    }
+
+    return userSnap.data().tasksStartTime || null;
+  } catch (error) {
+    console.error("Error fetching tasks start time:", error);
     throw error;
   }
 };

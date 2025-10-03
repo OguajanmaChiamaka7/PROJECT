@@ -1,6 +1,6 @@
 .investment-container {
   padding: 24px;
-  max-width: 1400px;
+  max-width: 1000px;
   margin: 0 auto;
   background-color: #f9fafb;
   min-height: 100vh;
@@ -651,7 +651,7 @@
 
 .btn-primary {
   background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
+  color: green;
 }
 
 .btn-primary:hover:not(:disabled) {

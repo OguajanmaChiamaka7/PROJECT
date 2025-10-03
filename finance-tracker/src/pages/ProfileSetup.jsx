@@ -1,12 +1,11 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; 
-import { saveUserProfile } from "../services/firestore";
+import { useAuth } from "../context/AuthContext";
+import { saveUserProfile } from "../services/saveUserProfile";
 import "../styles/ProfileSetup.css";
+import { initializeUserTasks } from "../services/firestore";
 
 const questions = [
-    
   {
     id: "age",
     question: "Q1: Age Range (Badge: Rookie, Explorer, or Veteran)",
@@ -38,7 +37,7 @@ const questions = [
   },
   {
     id: "financialGoal",
-    question: "Q4: What’s your main quest? (Financial Goal Badge)",
+    question: "Q4: What's your main quest? (Financial Goal Badge)",
     options: [
       "Save more money",
       "Budget better",
@@ -61,20 +60,38 @@ const questions = [
   },
 ];
 
+// ✅ XP rewards mapping
+const xpRewards = {
+  age: 50,
+  occupation: 50,
+  income: 100,
+  financialGoal: 100,
+  moneyPersona: 200,
+};
+
 const ProfileSetup = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [xp, setXp] = useState(0); // ✅ XP tracking state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const totalSteps = questions.length;
   const progressPercent = ((currentStep + 1) / totalSteps) * 100;
 
+  // ✅ Updated handleOptionSelect with XP logic
   const handleOptionSelect = (option) => {
-    setAnswers({ ...answers, [questions[currentStep].id]: option });
+    const qId = questions[currentStep].id;
+    const alreadyAnswered = answers[qId];
+    
+    // Only add XP if it's the first time answering this question
+    if (!alreadyAnswered) {
+      setXp((prev) => prev + xpRewards[qId]);
+    }
+    
+    setAnswers({ ...answers, [qId]: option });
   };
 
   const handleNext = async () => {
@@ -88,14 +105,23 @@ const ProfileSetup = () => {
         if (!currentUser || !currentUser.uid) {
           throw new Error("No authenticated user found.");
         }
-
-       await saveUserProfile(currentUser.uid, {
+        
+        // ✅ Save profile with XP
+        await saveUserProfile(currentUser.uid, {
           ...answers,
           profileCompleted: true,
+           xp,         
+           level: 1,      // ✅ start at level 1
+           badges: [],    // ✅ empty badge list
           updatedAt: new Date(),
         });
+        await initializeUserTasks(currentUser.uid);
+        
 
-        navigate("/app");
+        // 👇 force a reload so ProtectedRoute sees the update
+      window.location.href = "/app";
+        
+        // navigate("/app");
       } catch (err) {
         console.error("Profile setup failed:", err);
         setError("Something went wrong. Please try again.");
@@ -106,64 +132,64 @@ const ProfileSetup = () => {
   };
 
   return (
-<div className="profile-setup-container">
-
+    <div className="profile-setup-container">
       {/* ✅ Welcome heading shown only on first step, outside profile-card
       {currentStep === 0 && (
         <h2 className="welcome-heading">
-          Welcome, Adventurer! Before we start your financial journey, let’s set up your profile. Every answer earns you XP points!
+          Welcome, Adventurer! Before we start your financial journey, let's set up your profile.
+          Every answer earns you XP points!
         </h2>
       )}
-  )} */}
+      */}
 
-  <div className="profile-card">
-    {error && <div className="error-message">{error}</div>}
+      <div className="profile-card">
+        {error && <div className="error-message">{error}</div>}
 
-    {/* 👇 Actual question */}
-    <h2 className="question-title">
-      {questions[currentStep].question}
-    </h2>
+        {/* 👇 Actual question */}
+        <h2 className="question-title">
+          {questions[currentStep].question}
+        </h2>
 
-    <div className="options-container">
-      {questions[currentStep].options.map((option, index) => (
+        <div className="options-container">
+          {questions[currentStep].options.map((option, index) => (
+            <button
+              key={index}
+              className={`option-btn ${
+                answers[questions[currentStep].id] === option ? "selected" : ""
+              }`}
+              onClick={() => handleOptionSelect(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+
+        <p className="reward-text">{questions[currentStep].reward}</p>
+
         <button
-          key={index}
-          className={`option-btn ${
-            answers[questions[currentStep].id] === option ? "selected" : ""
-          }`}
-          onClick={() => handleOptionSelect(option)}
+          className="next-btn"
+          onClick={handleNext}
+          disabled={!answers[questions[currentStep].id] || loading}
         >
-          {option}
+          {loading
+            ? "Saving..."
+            : currentStep === totalSteps - 1
+            ? "Finish"
+            : "Next →"}
         </button>
-      ))}
+
+        <div className="progress-bar">
+          <div
+            className="progress-fill"
+            style={{ width: `${progressPercent}%` }}
+          ></div>
+        </div>
+
+        <p className="progress-text">
+          {currentStep + 1} / {totalSteps}
+        </p>
+      </div>
     </div>
-
-    <p className="reward-text">{questions[currentStep].reward}</p>
-
-    <button
-      className="next-btn"
-      onClick={handleNext}
-      disabled={!answers[questions[currentStep].id] || loading}
-    >
-      {loading
-        ? "Saving..."
-        : currentStep === totalSteps - 1
-        ? "Finish"
-        : "Next →"}
-    </button>
-
-    <div className="progress-bar">
-      <div
-        className="progress-fill"
-        style={{ width: `${progressPercent}%` }}
-      ></div>
-    </div>
-    <p className="progress-text">
-      {currentStep + 1} / {totalSteps}
-    </p>
-  </div>
-</div>
-
   );
 };
 

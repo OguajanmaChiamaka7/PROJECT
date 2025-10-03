@@ -27,6 +27,7 @@
   padding: 0 1.5rem;
   gap: 1rem;
   position: relative;
+  width: 100%;
 }
 
 /* LEFT group: toggle + logo */
@@ -61,20 +62,10 @@
   margin-left: 0; /* no extra push */
 }
 
-.logo-icon {
-  color: black;
-  flex-shrink: 0;
-  /* fallback sizing if inline attributes or other rules try to override */
-  width: 12px;
-  height: 12px;
-}
-
-/* Extra fallback for svg inside (force if necessary) */
-.logo-icon svg {
-  /* width: 20px ; */
-  /* height: 20px ; */
-  object-fit: contain;
-  color: black;
+/* logo icon */
+svg.logo-icon{
+  color: white;
+ background-image: linear-gradient(135deg, var(--brand-green-start), var(--brand-green-end));
 }
 
 /* logo text */
@@ -91,13 +82,31 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: transform 0.2s ease;
+  gap: 12px; /* Space between icon and text */
+  transform: scale(0.8); /* Makes everything 80% of original size */
+  transform-origin: left center; /* Keeps it aligned properly */
 }
 
-.logo:hover {
-  transform: scale(1.02);
+.logo-icon {
+  border-radius: 50%;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
 }
+
+/* Come back to the hovering of the icon LATER!!! */
+
+/* .logo-icon:hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.logo-icon:hover {
+   transform: scale(1.2); 
+ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+} */
 
 /* NAV LINKS centered */
 .nav-links {
@@ -105,12 +114,13 @@
   text-decoration: none;
   color: #10b981;
   font-weight: 600;
-  padding: 10px 18px;
+  padding: 10px 100px;
   border-radius: 8px;
   transition: all 0.3s ease;
   position: relative;
  display: none;
  gap: 40px;
+ 
    /* flex: 1 1 auto;            
   justify-content: center;
   gap: 1.4rem;

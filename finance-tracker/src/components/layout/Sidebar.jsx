@@ -4,7 +4,7 @@ import {
   X, User, CheckSquare, TrendingUp, Trophy, Award,
   Users, Gift, Bell, Wallet, Home, BarChart3, Target,
   CreditCard, PiggyBank, Settings, LogOut, DollarSign,
-  BookOpen, FileText
+  BookOpen, FileText, 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useGamification } from '../../context/GamificationContext';
@@ -52,6 +52,20 @@ const Sidebar = ({ sidebarOpen, toggleSidebar }) => {
   const levelProgress = getLevelProgress();
   const pendingTasks = getPendingTasksToday();
 
+ // merge base XP with badge XP (from userStats)
+const badgeXP = (userStats?.badges?.length || 0) * 50;
+const baseXP = userStats?.xp || 0;
+const totalXP = baseXP + badgeXP;
+
+// level is derived from totalXP
+const level = Math.floor(totalXP / 1000) + 1;
+
+// progress towards next level
+const xpForLevel = totalXP % 1000;
+const percentage = (xpForLevel / 1000) * 100;
+
+
+  
   return (
     <aside
       className={`sidebar ${sidebarOpen ? 'open' : ''}`}
@@ -86,15 +100,17 @@ const Sidebar = ({ sidebarOpen, toggleSidebar }) => {
           </div>
         </div>
 
-        <div className="xp-section">
-          <div className="xp-header">
-            <span className="xp-current">XP: {userStats.xp}</span>
-            <span className="xp-target">{userStats.level * 1000}</span>
-          </div>
-          <div className="xp-bar">
-            <div className="xp-fill" style={{ width: `${levelProgress.percentage}%` }} />
-          </div>
-          <div className="xp-next-level">{levelProgress.total - levelProgress.current} XP to next level</div>
+      <div className="xp-section">
+        <div className="xp-header">
+          <span className="xp-current">XP: {totalXP}</span>
+          <span className="xp-target">{level * 1000}</span>
+        </div>
+        <div className="xp-bar">
+           <div className="xp-fill" style={{ width: `${percentage}%` }} />
+        </div>
+        <div className="xp-next-level">
+          {1000 - xpForLevel} XP to next level
+        </div>
         </div>
       </div>
 
@@ -112,7 +128,7 @@ const Sidebar = ({ sidebarOpen, toggleSidebar }) => {
           <SidebarItem icon={CheckSquare} text="Daily Tasks" to="/app/tasks" badge={pendingTasks.length > 0 ? pendingTasks.length.toString() : null} />
           <SidebarItem icon={TrendingUp} text="Progress" to="/app/progress" />
           <SidebarItem icon={Trophy} text="Badges" to="/app/badges" />
-          <SidebarItem icon={Users} text="Savings Circle" to="/app/savings" />
+          {/* <SidebarItem icon={Users} text="Savings Circle" to="/app/savings" /> */}
           <SidebarItem icon={Gift} text="Rewards" to="/app/rewards" badge="1" />
         </div>
 
@@ -121,6 +137,7 @@ const Sidebar = ({ sidebarOpen, toggleSidebar }) => {
           <SidebarItem icon={DollarSign} text="Investment" to="/app/investment" />
           <SidebarItem icon={BookOpen} text="Learning" to="/app/learning" />
           <SidebarItem icon={FileText} text="Resources" to="/app/resources" />
+          <SidebarItem icon={Users} text="Community" to="/app/community" />
         </div>
 
         <div className="nav-section">

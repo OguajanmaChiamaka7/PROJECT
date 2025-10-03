@@ -1,55 +1,4 @@
 
-// import React from 'react';
-// import { Menu, Bell, User, PiggyBank } from 'lucide-react';
-// import '../../styles/Navbar.css';
-// import Community from '../NavComponents/Community';
-
-// const NavItem = ({ text, active = false }) => (
-//   <div className={`nav-item ${active ? 'active' : ''}`}>{text}</div>
-// );
-
-// const Navbar = ({ toggleSidebar }) => {
-//   return (
-//     <header className="navbar">
-//       <div className="navbar-container">
-
-//         {/* LEFT: toggle + logo */}
-//         <div className="navbar-left">
-//           <button className="menu-btn" onClick={toggleSidebar} aria-label="Toggle sidebar">
-//             <Menu className="icon" />
-//           </button>
-
-//           <div className="logo">
-//              <PiggyBank size={12} className="logo-icon" />
-//              <span className="logo-text">MoniUp</span>
-//           </div>
-
-//         </div>
-
-//         {/* CENTER: links */}
-//         <nav className="nav-links" aria-label="Main navigation">
-//           {/* <NavItem text="Home" /> */}
-//           <NavItem text="Invest" />
-//           <NavItem text="Learning" />
-//           <NavItem text="Resources" />
-//           <NavItem text="Community" to="/app/community" />
-//         </nav>
-
-//         {/* RIGHT: notifications + avatar */}
-//         <div className="navbar-right">
-//           <button className="icon-btn" aria-label="Notifications">
-//             <Bell className="icon" />
-//           </button>
-//           <div className="avatar" title="Profile">
-//             <User className="user-icon" />
-//           </div>
-//         </div>
-//       </div>
-//     </header>
-//   );
-// };
-
-// export default Navbar;
 
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -122,38 +71,14 @@ const Navbar = ({ toggleSidebar }) => {
         {/* LEFT: toggle + logo */}
         <div className="navbar-left">
           <button className="menu-btn" onClick={toggleSidebar} aria-label="Toggle sidebar">
-            <Menu className="icon" />
+            <Menu className="icon" size={192} />
           </button>
 
           <div className="logo" onClick={() => navigate('/app')} style={{ cursor: 'pointer' }}>
-            <PiggyBank size={20} className="logo-icon" />
+            <PiggyBank size={24} className="logo-icon" />
             <span className="logo-text">MoniUp</span>
           </div>
         </div>
-
-        {/* CENTER: search bar */}
-        <div className="navbar-center">
-          <form onSubmit={handleSearchSubmit} className="search-form">
-            <div className="search-container">
-              <Search className="search-icon" size={16} />
-              <input
-                type="text"
-                placeholder="Search transactions, goals..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-            </div>
-          </form>
-        </div>
-
-        {/* CENTER: navigation links (desktop) */}
-        <nav className="nav-links" aria-label="Main navigation">
-          <NavItem text="Invest" to="/app/invest" active={location.pathname.includes('invest')} />
-          <NavItem text="Learning" to="/app/learning" active={location.pathname.includes('learning')} />
-          <NavItem text="Resources" to="/app/resources" active={location.pathname.includes('resources')} />
-          <NavItem text="Community" to="/app/community" active={location.pathname.includes('community')} />
-        </nav>
 
         {/* RIGHT: balance + notifications + profile */}
         <div className="navbar-right">
@@ -176,7 +101,7 @@ const Navbar = ({ toggleSidebar }) => {
               </div>
               <div className="profile-info">
                 <span className="profile-name">{currentUser?.displayName || 'User'}</span>
-                <span className="profile-level">Level 12</span>
+                <span className="profile-level">Level 1</span>
               </div>
               <ChevronDown className={`chevron ${isProfileMenuOpen ? 'open' : ''}`} size={16} />
             </button>

@@ -147,7 +147,7 @@ const SignUp = () => {
           name="password"
           value={formData.password}
           onChange={handleChange}
-          placeholder="Create a password (min. 6 characters)"
+          placeholder="Create a password"
           error={errors.password}
           disabled={loading}
           icon={FaLock}

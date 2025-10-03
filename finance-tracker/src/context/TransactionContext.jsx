@@ -7,6 +7,9 @@ import {
   deleteTransaction as deleteTransactionDB,
   getUserAnalytics
 } from '../services/firestore';
+// import { updateUserXPAndBadges } from "../services/gamification";
+import { getUserBadges } from "../services/firestore";
+
 
 const TransactionContext = createContext();
 
@@ -21,9 +24,12 @@ export const useTransaction = () => {
 export const TransactionProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [transactions, setTransactions] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+
+  
 
   // Transaction categories
   const categories = {
@@ -94,6 +100,12 @@ export const TransactionProvider = ({ children }) => {
 
       // Add to local state
       setTransactions(prev => [newTransaction, ...prev]);
+
+      //Gamification hook
+      await updateUserXPAndBadges(currentUser.uid, {
+      action: "add_transaction",
+      amount: transactionData.amount,
+    });
 
       // Refresh analytics
       await loadAnalytics();

@@ -279,7 +279,7 @@ body {
 
 .hero-title {
   font-size: 64px;
-  font-weight: 900;
+  font-weight: bolder;
   background: linear-gradient(135deg, #10b981, #0d9488);
   background-clip: text;
   -webkit-background-clip: text;
@@ -1164,7 +1164,7 @@ body {
 .feature-header h2 {
   font-size: 42px;
   font-weight: 900;
-  color: #111827;
+  color: #10b981;
   margin-bottom: 20px;
 }
 
@@ -1378,6 +1378,7 @@ body {
   }
   .hero-title {
     font-size: 42px;
+    font-weight: bold;
   }
 }
 
@@ -1423,6 +1424,7 @@ body {
 @media (max-width: 480px) {
   .hero-title {
     font-size: 28px;
+    font-weight: bold;
   }
   .section-title {
     font-size: 24px;

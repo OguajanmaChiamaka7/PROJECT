@@ -98,6 +98,11 @@
   margin: 0;
 }
 
+.auth-form input:hover{
+  border: none;
+  border-color: transparent;
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -126,7 +131,7 @@
 }
 
 .sliding-auth-container .input-container:focus-within {
-  border-color: #10b981;
+  /* border-color: #10b981; */
   background: white;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   transform: translateY(-1px);
