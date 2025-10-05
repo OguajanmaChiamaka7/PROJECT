@@ -1,5 +1,7 @@
+// TransactionContext.jsx - FIXED FOR NUMERIC IDs
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useGamification } from './GamificationContext';
 import {
   addTransaction as addTransactionDB,
   getUserTransactions,
@@ -7,9 +9,6 @@ import {
   deleteTransaction as deleteTransactionDB,
   getUserAnalytics
 } from '../services/firestore';
-// import { updateUserXPAndBadges } from "../services/gamification";
-import { getUserBadges } from "../services/firestore";
-
 
 const TransactionContext = createContext();
 
@@ -23,13 +22,12 @@ export const useTransaction = () => {
 
 export const TransactionProvider = ({ children }) => {
   const { currentUser } = useAuth();
+  const { awardXP, checkAndAwardBadges, setUserStats } = useGamification();
+  
   const [transactions, setTransactions] = useState([]);
-  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [analytics, setAnalytics] = useState(null);
-
-  
 
   // Transaction categories
   const categories = {
@@ -45,7 +43,15 @@ export const TransactionProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const userTransactions = await getUserTransactions(currentUser.uid);
-      setTransactions(userTransactions);
+      
+      // Sort by date (newest first)
+      const sortedTransactions = userTransactions.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date);
+        const dateB = new Date(b.createdAt || b.date);
+        return dateB - dateA;
+      });
+      
+      setTransactions(sortedTransactions);
     } catch (err) {
       setError(err.message);
       console.error('Error loading transactions:', err);
@@ -79,6 +85,7 @@ export const TransactionProvider = ({ children }) => {
     }
   }, [currentUser?.uid]);
 
+  // Add new transaction
   const addTransaction = async (transactionData) => {
     if (!currentUser?.uid) {
       throw new Error('User not authenticated');
@@ -101,11 +108,21 @@ export const TransactionProvider = ({ children }) => {
       // Add to local state
       setTransactions(prev => [newTransaction, ...prev]);
 
-      //Gamification hook
-      await updateUserXPAndBadges(currentUser.uid, {
-      action: "add_transaction",
-      amount: transactionData.amount,
-    });
+      // Gamification: Award XP
+      await awardXP(10, `Added ${transactionData.type} transaction`);
+
+      // Check if this is their first transaction
+      if (transactions.length === 0) {
+        await checkAndAwardBadges(currentUser.uid, { type: 'first_transaction' });
+      }
+
+      // Update total savings if it's income
+      if (transactionData.type === 'income' && setUserStats) {
+        setUserStats((prev) => ({
+          ...prev,
+          totalSavings: prev.totalSavings + transactionData.amount,
+        }));
+      }
 
       // Refresh analytics
       await loadAnalytics();
@@ -113,24 +130,32 @@ export const TransactionProvider = ({ children }) => {
       return newTransaction;
     } catch (err) {
       setError(err.message);
+      console.error('Error adding transaction:', err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // Update existing transaction - FIXED FOR NUMERIC IDs
   const updateTransaction = async (transactionId, updatedData) => {
     try {
       setLoading(true);
       setError(null);
 
-      await updateTransactionDB(transactionId, updatedData);
+      // Keep ID as-is (number or string)
+        const id = transactionId;
 
-      // Update local state
+      console.log('Updating transaction:', id, 'Type:', typeof id, updatedData);
+
+      // Update in database first
+      await updateTransactionDB(id, updatedData);
+
+      // Update local state - compare IDs properly (works for both numbers and strings)
       setTransactions(prev =>
         prev.map(transaction =>
-          transaction.id === transactionId
-            ? { ...transaction, ...updatedData }
+          transaction.id == id  // Use loose equality to handle number/string
+            ? { ...transaction, ...updatedData, id: transaction.id }
             : transaction
         )
       );
@@ -138,31 +163,47 @@ export const TransactionProvider = ({ children }) => {
       // Refresh analytics
       await loadAnalytics();
 
+      console.log('Transaction updated successfully');
+
     } catch (err) {
       setError(err.message);
+      console.error('Error updating transaction:', err);
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
+  // Delete transaction - FIXED FOR NUMERIC IDs
   const deleteTransaction = async (transactionId) => {
     try {
       setLoading(true);
       setError(null);
 
-      await deleteTransactionDB(transactionId);
+      // Keep ID as-is (number or string)
+      const id = transactionId;
 
-      // Remove from local state
-      setTransactions(prev =>
-        prev.filter(transaction => transaction.id !== transactionId)
-      );
+      console.log('Deleting transaction with ID:', id, 'Type:', typeof id);
+      console.log('Current transactions:', transactions.map(t => ({ id: t.id, type: typeof t.id })));
+
+      // Delete from database first
+      await deleteTransactionDB(id);
+
+      // Remove from local state - use loose equality to handle number/string comparison
+      setTransactions(prev => {
+        const filtered = prev.filter(transaction => transaction.id != id);  // Use loose equality
+        console.log('Filtered transactions:', filtered.length, 'from', prev.length);
+        return filtered;
+      });
 
       // Refresh analytics
       await loadAnalytics();
 
+      console.log('Transaction deleted successfully');
+
     } catch (err) {
       setError(err.message);
+      console.error('Error deleting transaction:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -201,7 +242,7 @@ export const TransactionProvider = ({ children }) => {
 
       if (startDate) {
         filteredTransactions = filteredTransactions.filter(
-          t => new Date(t.createdAt) >= startDate
+          t => new Date(t.createdAt || t.date) >= startDate
         );
       }
     }
@@ -209,9 +250,17 @@ export const TransactionProvider = ({ children }) => {
     return filteredTransactions.reduce((total, transaction) => total + transaction.amount, 0);
   };
 
+  const getTotalIncome = () => {
+    return getTotalByType('income');
+  };
+
+  const getTotalExpenses = () => {
+    return getTotalByType('expense');
+  };
+
   const getBalance = () => {
-    const income = getTotalByType('income');
-    const expenses = getTotalByType('expense');
+    const income = getTotalIncome();
+    const expenses = getTotalExpenses();
     return income - expenses;
   };
 
@@ -242,7 +291,7 @@ export const TransactionProvider = ({ children }) => {
 
       if (startDate) {
         filteredTransactions = filteredTransactions.filter(
-          t => new Date(t.createdAt) >= startDate
+          t => new Date(t.createdAt || t.date) >= startDate
         );
       }
     }
@@ -255,37 +304,40 @@ export const TransactionProvider = ({ children }) => {
 
   const getTransactionsByDateRange = (startDate, endDate) => {
     return transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.createdAt);
+      const transactionDate = new Date(transaction.createdAt || transaction.date);
       return transactionDate >= startDate && transactionDate <= endDate;
     });
   };
 
-  const value = {
-    transactions,
-    loading,
-    error,
-    analytics,
-    categories,
-
-    // Actions
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-    loadTransactions,
-    loadAnalytics,
-
-    // Helper functions
-    getTransactionsByCategory,
-    getTransactionsByType,
-    getTotalByType,
-    getBalance,
-    getRecentTransactions,
-    getCategoryBreakdown,
-    getTransactionsByDateRange,
-  };
-
   return (
-    <TransactionContext.Provider value={value}>
+    <TransactionContext.Provider
+      value={{
+        // State
+        transactions,
+        loading,
+        error,
+        analytics,
+        categories,
+
+        // Actions
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
+        loadTransactions,
+        loadAnalytics,
+
+        // Helper functions
+        getTransactionsByCategory,
+        getTransactionsByType,
+        getTotalByType,
+        getTotalIncome,
+        getTotalExpenses,
+        getBalance,
+        getRecentTransactions,
+        getCategoryBreakdown,
+        getTransactionsByDateRange,
+      }}
+    >
       {children}
     </TransactionContext.Provider>
   );

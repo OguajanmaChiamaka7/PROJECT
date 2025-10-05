@@ -3,6 +3,7 @@ import { CheckCircle } from 'lucide-react';
 import '../../styles/DailyTasks.css';
 import { getAuth } from 'firebase/auth';
 import { completeTask, getUserTasks, getUserTasksStartTime } from '../../services/firestore';
+import { useGamification } from "../../context/GamificationContext";
 
 const DAILY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -13,6 +14,9 @@ const DailyTasks = () => {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // ✅ Gamification functions from context
+  const { checkAndAwardBadges, awardXP } = useGamification();
 
   const auth = getAuth();
   const uid = auth.currentUser?.uid;
@@ -87,6 +91,7 @@ const DailyTasks = () => {
     }
   }, [dailyTasks, currentDayIndex, currentTime, startTime]);
 
+  // ✅ Unified handler: Award XP + check badges when completing a task
   const handleToggleTask = async (task) => {
     if (!uid) return;
     if (task.completed) return;
@@ -109,7 +114,27 @@ const DailyTasks = () => {
     );
 
     try {
+      // 1) Save to Firestore
       await completeTask(uid, currentDayIndex + 1, task.id, task.xp);
+
+      // 2) Award XP with description
+      await awardXP(task.xp, `Completed task: ${task.title}`);
+
+      // 3) Check & unlock badges based on task type and context
+      await checkAndAwardBadges(uid, { 
+        type: "taskCompleted", 
+        task,
+        taskType: task.type 
+      });
+
+      // Additional badge checks for specific task types
+      if (task.type === "savings") {
+        await checkAndAwardBadges(uid, { type: "savings_milestone" });
+      }
+      if (task.type === "transaction") {
+        await checkAndAwardBadges(uid, { type: "first_transaction" });
+      }
+
     } catch (error) {
       console.error("Failed to complete task:", error);
       // Rollback UI on error

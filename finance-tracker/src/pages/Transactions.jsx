@@ -1,10 +1,17 @@
+// Transactions.jsx
+// Transactions.jsx
 import React, { useState } from 'react';
 import { useTransaction } from '../context/TransactionContext';
+import { DollarSign, TrendingUp, TrendingDown, Wallet, Plus, Edit2, Trash2, Calendar, Filter } from 'lucide-react';
+import '../styles/Transactions.css';
 
 const Transactions = () => {
   const { transactions, addTransaction, deleteTransaction, updateTransaction } = useTransaction();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [filterType, setFilterType] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -26,9 +33,9 @@ const Transactions = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.description || !formData.amount || !formData.category) {
       alert('Please fill in all fields');
       return;
@@ -37,25 +44,28 @@ const Transactions = () => {
     const transactionData = {
       ...formData,
       amount: parseFloat(formData.amount),
-      id: editingTransaction ? editingTransaction.id : Date.now()
     };
 
-    if (editingTransaction) {
-      updateTransaction(editingTransaction.id, transactionData);
-      setEditingTransaction(null);
-    } else {
-      addTransaction(transactionData);
-    }
+    try {
+      if (editingTransaction) {
+        await updateTransaction(editingTransaction.id, transactionData);
+        setEditingTransaction(null);
+      } else {
+        await addTransaction(transactionData);
+      }
 
-    // Reset form
-    setFormData({
-      description: '',
-      amount: '',
-      type: 'expense',
-      category: '',
-      date: new Date().toISOString().split('T')[0]
-    });
-    setShowAddForm(false);
+      setFormData({
+        description: '',
+        amount: '',
+        type: 'expense',
+        category: '',
+        date: new Date().toISOString().split('T')[0]
+      });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      alert('Failed to save transaction. Please try again.');
+    }
   };
 
   const handleEdit = (transaction) => {
@@ -70,16 +80,21 @@ const Transactions = () => {
     setShowAddForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
-      deleteTransaction(id);
+      try {
+        await deleteTransaction(String(id));
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        alert('Failed to delete transaction. Please try again.');
+      }
     }
   };
 
   const calculateBalance = () => {
     return transactions.reduce((balance, transaction) => {
-      return transaction.type === 'income' 
-        ? balance + transaction.amount 
+      return transaction.type === 'income'
+        ? balance + transaction.amount
         : balance - transaction.amount;
     }, 0);
   };
@@ -96,44 +111,66 @@ const Transactions = () => {
       .reduce((total, t) => total + t.amount, 0);
   };
 
+  const getFilteredTransactions = () => {
+    return transactions.filter(transaction => {
+      const matchesType = filterType === 'all' || transaction.type === filterType;
+      const matchesCategory = filterCategory === 'all' || transaction.category === filterCategory;
+      const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesType && matchesCategory && matchesSearch;
+    });
+  };
+
+  const filteredTransactions = getFilteredTransactions();
+  const allCategories = [...new Set(transactions.map(t => t.category))];
+
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Transactions</h1>
+    <div className="transactions-container">
+      <div className="transactions-wrapper">
+        <div className="header-section">
+          <h1 className="page-title">
+            <Wallet className="title-icon" />
+            Transactions
+          </h1>
+        </div>
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-green-50 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-green-800">Total Income</h3>
-            <p className="text-2xl font-bold text-green-600">
-              ${getTotalIncome().toFixed(2)}
-            </p>
+        <div className="summary-grid">
+          <div className="summary-card income-card">
+            <div className="card-content">
+              <TrendingUp className="card-icon" />
+              <div className="card-info">
+                <h3 className="card-label">Total Income</h3>
+                <p className="card-amount income-amount">
+                  ₦{getTotalIncome().toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
           </div>
           
-          <div className="bg-red-50 p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-red-800">Total Expenses</h3>
-            <p className="text-2xl font-bold text-red-600">
-              ${getTotalExpenses().toFixed(2)}
-            </p>
+          <div className="summary-card expense-card">
+            <div className="card-content">
+              <TrendingDown className="card-icon" />
+              <div className="card-info">
+                <h3 className="card-label">Total Expenses</h3>
+                <p className="card-amount expense-amount">
+                  ₦{getTotalExpenses().toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
           </div>
           
-          <div className={`p-6 rounded-lg shadow ${
-            calculateBalance() >= 0 ? 'bg-blue-50' : 'bg-yellow-50'
-          }`}>
-            <h3 className={`text-lg font-semibold ${
-              calculateBalance() >= 0 ? 'text-blue-800' : 'text-yellow-800'
-            }`}>
-              Balance
-            </h3>
-            <p className={`text-2xl font-bold ${
-              calculateBalance() >= 0 ? 'text-blue-600' : 'text-yellow-600'
-            }`}>
-              ${calculateBalance().toFixed(2)}
-            </p>
+          <div className={`summary-card balance-card ${calculateBalance() >= 0 ? 'positive' : 'negative'}`}>
+            <div className="card-content">
+              <DollarSign className="card-icon" />
+              <div className="card-info">
+                <h3 className="card-label">Balance</h3>
+                <p className="card-amount balance-amount">
+                  ₦{calculateBalance().toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Add Transaction Button */}
         <button
           onClick={() => {
             setShowAddForm(!showAddForm);
@@ -146,38 +183,34 @@ const Transactions = () => {
               date: new Date().toISOString().split('T')[0]
             });
           }}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 mb-6"
+          className="add-btn"
         >
+          <Plus className="btn-icon" />
           {showAddForm ? 'Cancel' : 'Add Transaction'}
         </button>
 
-        {/* Add/Edit Transaction Form */}
         {showAddForm && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-xl font-semibold mb-4">
+          <div className="form-card">
+            <h2 className="form-title">
               {editingTransaction ? 'Edit Transaction' : 'Add New Transaction'}
             </h2>
             
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
+            <form onSubmit={handleSubmit} className="transaction-form">
+              <div className="form-group">
+                <label className="form-label">Description</label>
                 <input
                   type="text"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="form-input"
                   placeholder="Enter description"
                   required
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount
-                </label>
+              <div className="form-group">
+                <label className="form-label">Amount (₦)</label>
                 <input
                   type="number"
                   name="amount"
@@ -185,36 +218,32 @@ const Transactions = () => {
                   onChange={handleInputChange}
                   step="0.01"
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="form-input"
                   placeholder="0.00"
                   required
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type
-                </label>
+              <div className="form-group">
+                <label className="form-label">Type</label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="form-select"
                 >
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
+              <div className="form-group">
+                <label className="form-label">Category</label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="form-select"
                   required
                 >
                   <option value="">Select category</option>
@@ -226,25 +255,20 @@ const Transactions = () => {
                 </select>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date
-                </label>
+              <div className="form-group">
+                <label className="form-label">Date</label>
                 <input
                   type="date"
                   name="date"
                   value={formData.date}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="form-input"
                   required
                 />
               </div>
               
-              <div className="md:col-span-2">
-                <button
-                  type="submit"
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"
-                >
+              <div className="form-actions">
+                <button type="submit" className="submit-btn">
                   {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
                 </button>
               </div>
@@ -252,73 +276,113 @@ const Transactions = () => {
           </div>
         )}
 
-        {/* Transactions List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Transactions</h2>
+        <div className="filter-section">
+          <div className="filter-header">
+            <Filter className="filter-icon" />
+            <h3>Filters</h3>
+          </div>
+          <div className="filter-controls">
+            <div className="filter-group">
+              <label className="filter-label">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="filter-input"
+                placeholder="Search transactions..."
+              />
+            </div>
+            <div className="filter-group">
+              <label className="filter-label">Type</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label className="filter-label">Category</label>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Categories</option>
+                {allCategories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="transactions-list-card">
+          <div className="list-header">
+            <h2 className="list-title">
+              Recent Transactions
+              <span className="transaction-count">({filteredTransactions.length})</span>
+            </h2>
           </div>
           
-          {transactions.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
-              No transactions yet. Add your first transaction above!
+          {filteredTransactions.length === 0 ? (
+            <div className="empty-state">
+              <Calendar className="empty-icon" />
+              <p className="empty-text">
+                {transactions.length === 0
+                  ? 'No transactions yet. Add your first transaction above!'
+                  : 'No transactions match your filters.'
+                }
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="table-container">
+              <table className="transactions-table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {transaction.description}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          transaction.type === 'income' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
+                <tbody>
+                  {filteredTransactions.map((transaction) => (
+                    <tr key={transaction.id}>
+                      <td className="description-cell">{transaction.description}</td>
+                      <td>
+                        <span className={`category-badge ${transaction.type}`}>
                           {transaction.category}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(transaction.date).toLocaleDateString()}
+                      <td className="date-cell">
+                        {new Date(transaction.date).toLocaleDateString('en-NG', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                          {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                        </span>
+                      <td className={`amount-cell ${transaction.type}`}>
+                        {transaction.type === 'income' ? '+' : '-'}₦{transaction.amount.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="actions-cell">
                         <button
                           onClick={() => handleEdit(transaction)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                          className="action-btn edit-btn"
+                          title="Edit transaction"
                         >
-                          Edit
+                          <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(transaction.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="action-btn delete-btn"
+                          title="Delete transaction"
                         >
-                          Delete
+                          <Trash2 size={16} />
                         </button>
                       </td>
                     </tr>

@@ -2,19 +2,19 @@ export const dailyTasksData = [
   {
     day: 1,
     tasks: [
-      { id: 1, title: "Save ₦500 today", completed: false, xp: 50 },
-      { id: 2, title: "Complete financial quiz", completed: false, xp: 100 },
-      { id: 3, title: "Invite a friend", completed: false, xp: 200 },
-      { id: 4, title: "Set weekly budget", completed: false, xp: 75 }
+      { id: 1, title: "Save ₦500 today", completed: false, xp: 100 },
+      { id: 2, title: "Record a daily expense", completed: false, xp: 150 },
+      { id: 3, title: "Read a financial tip", completed: false, xp: 50 },
+      { id: 4, title: "Set a savings goal", completed: false, xp: 150 }
     ]
   },
   {
     day: 2,
     tasks: [
-      { id: 1, title: "Track daily expenses", completed: false, xp: 50 },
-      { id: 2, title: "Read financial tip", completed: false, xp: 25 },
-      { id: 3, title: "Save ₦700 today", completed: false, xp: 70 },
-      { id: 4, title: "Review last week's spending", completed: false, xp: 100 }
+      { id: 1, title: "Save ₦500 today", completed: false, xp: 100 },
+      { id: 2, title: "Complete financial quiz", completed: false, xp: 150 },
+      { id: 3, title: "Read a financial tip", completed: false, xp: 50 },
+      { id: 4, title: "Set a savings goal", completed: false, xp: 150 } 
     ]
   },
   {

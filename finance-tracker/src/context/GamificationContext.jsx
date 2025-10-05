@@ -1,160 +1,85 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from './AuthContext';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "./AuthContext";
 import {
   getUserProfile,
   updateUserXP,
   getUserBadges,
   awardBadge,
   getDailyTasks,
-  completeTask,
-  createNotification
-} from '../services/firestore';
+  createNotification,
+} from "../services/firestore";
 
 const GamificationContext = createContext();
 
 export const useGamification = () => {
   const context = useContext(GamificationContext);
   if (!context) {
-    throw new Error('useGamification must be used within a GamificationProvider');
+    throw new Error("useGamification must be used within a GamificationProvider");
   }
   return context;
 };
 
 export const GamificationProvider = ({ children }) => {
   const { currentUser } = useAuth();
+
   const [userStats, setUserStats] = useState({
     xp: 0,
     level: 1,
     balance: 0,
     streak: 0,
     totalSavings: 0,
-    goalsCompleted: 0
+    goalsCompleted: 0,
+    badges: [],
   });
+
   const [badges, setBadges] = useState([]);
   const [dailyTasks, setDailyTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Badge definitions (catalog)
   const availableBadges = {
-    first_transaction: {
-      name: 'First Step',
-      description: 'Made your first transaction',
-      icon: '🎯',
-      xpReward: 50,
-      condition: (stats) => stats.totalSavings > 0
-    },
     first_saver: {
-      name: 'First Saver',
-      description: 'Saved your first ₦500',
-      icon: '💰',
+      name: "First Saver",
+      description: "Saved your first ₦500",
+      icon: "💰",
       xpReward: 60,
-      condition: (stats) => stats.totalSavings >= 500
-    },
-    transaction_streak_7: {
-      name: 'Weekly Warrior',
-      description: '7 days of consistent tracking',
-      icon: '🔥',
-      xpReward: 100,
-      condition: (stats) => stats.streak >= 7
-    },
-    transaction_streak_30: {
-      name: 'Monthly Master',
-      description: '30 days of consistent tracking',
-      icon: '👑',
-      xpReward: 200,
-      condition: (stats) => stats.streak >= 30
-    },
-    saver_100: {
-      name: 'Penny Saver',
-      description: 'Saved ₦100',
-      icon: '💰',
-      xpReward: 75,
-      condition: (stats) => stats.totalSavings >= 100
-    },
-    saver_1000: {
-      name: 'Smart Saver',
-      description: 'Saved ₦1,000',
-      icon: '💎',
-      xpReward: 150,
-      condition: (stats) => stats.totalSavings >= 1000
-    },
-    goal_achiever: {
-      name: 'Goal Getter',
-      description: 'Completed your first goal',
-      icon: '🏆',
-      xpReward: 250,
-      condition: (stats) => stats.goalsCompleted >= 1
+      condition: (stats) => stats.totalSavings >= 500,
     },
     goal_crusher: {
-      name: 'Goal Crusher',
-      description: 'Completed multiple goals',
-      icon: '🎯',
+      name: "Goal Crusher",
+      description: "Completed your first goal",
+      icon: "🎯",
       xpReward: 50,
-      condition: (stats) => stats.goalsCompleted >= 3
+      condition: (stats) => stats.goalsCompleted >= 1,
     },
-    budget_keeper: {
-      name: 'Budget Keeper',
-      description: 'Stayed within budget for a month',
-      icon: '📊',
-      xpReward: 200
+    streak_master: {
+      name: "Streak Master",
+      description: "7-day savings streak",
+      icon: "⚡",
+      xpReward: 100,
+      condition: (stats) => stats.streak >= 7,
     },
-    level_5: {
-      name: 'Rising Star',
-      description: 'Reached Level 5',
-      icon: '⭐',
-      xpReward: 300,
-      condition: (stats) => stats.level >= 5
+    level_up: {
+      name: "Level Up",
+      description: "Reached level 5",
+      icon: "⭐",
+      xpReward: 150,
+      condition: (stats) => stats.level >= 5,
     },
-    level_10: {
-      name: 'Finance Pro',
-      description: 'Reached Level 10',
-      icon: '🌟',
-      xpReward: 500,
-      condition: (stats) => stats.level >= 10
-    }
   };
 
-  // Daily tasks templates
-  const dailyTasksTemplates = [
-    {
-      title: 'Add a Transaction',
-      description: 'Record at least one transaction today',
-      type: 'transaction',
-      xpReward: 25,
-      icon: '📝'
-    },
-    {
-      title: 'Check Your Balance',
-      description: 'Review your current balance',
-      type: 'balance_check',
-      xpReward: 15,
-      icon: '💳'
-    },
-    {
-      title: 'Review Goals',
-      description: 'Check progress on your savings goals',
-      type: 'goal_review',
-      xpReward: 20,
-      icon: '🎯'
-    },
-    {
-      title: 'Categorize Expenses',
-      description: 'Review and categorize recent expenses',
-      type: 'categorization',
-      xpReward: 30,
-      icon: '📂'
-    }
-  ];
-
-  // 🔹 Automatic badge checking when stats change
   useEffect(() => {
     if (currentUser?.uid) {
+      loadUserData();
+    }
+  }, [currentUser?.uid]);
+
+  useEffect(() => {
+    if (currentUser?.uid && userStats.xp > 0) {
       checkAndAwardBadgesAuto();
     }
   }, [userStats.totalSavings, userStats.goalsCompleted, userStats.streak, userStats.level]);
 
-  // Load user data
   const loadUserData = async () => {
     if (!currentUser?.uid) return;
 
@@ -162,149 +87,109 @@ export const GamificationProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Load user profile for stats
       const profile = await getUserProfile(currentUser.uid);
-      setUserStats({
+      setUserStats((prev) => ({
+        ...prev,
         xp: profile.xp || 0,
         level: profile.level || 1,
         balance: profile.balance || 0,
         streak: profile.streak || 0,
         totalSavings: profile.totalSavings || 0,
-        goalsCompleted: profile.goalsCompleted || 0
-      });
+        goalsCompleted: profile.goalsCompleted || 0,
+        badges: profile.badges || [],
+      }));
 
-      // Load badges
       const userBadges = await getUserBadges(currentUser.uid);
       setBadges(userBadges);
 
-      // Load daily tasks
       const tasks = await getDailyTasks(currentUser.uid);
       setDailyTasks(tasks);
-
     } catch (err) {
       setError(err.message);
-      console.error('Error loading gamification data:', err);
+      console.error("Error loading gamification data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load data when user changes
-  useEffect(() => {
-    if (currentUser?.uid) {
-      loadUserData();
-    } else {
-      setUserStats({ xp: 0, level: 1, balance: 0, streak: 0, totalSavings: 0, goalsCompleted: 0 });
-      setBadges([]);
-      setDailyTasks([]);
-    }
-  }, [currentUser?.uid]);
-
-  // Award XP to user
   const awardXP = async (amount, reason) => {
     if (!currentUser?.uid) return;
 
     try {
       const result = await updateUserXP(currentUser.uid, amount);
 
-      // Update local stats
-      setUserStats(prev => ({
-        ...prev,
-        xp: result.newXP,
-        level: result.newLevel
-      }));
-
-      // Create notification
-      await createNotification(currentUser.uid, {
-        type: 'xp_earned',
-        title: `+${amount} XP Earned!`,
-        message: reason || 'Keep up the great work!',
-        data: { xp: amount, reason }
+      setUserStats((prev) => {
+        const newXP = result.newXP || prev.xp + amount;
+        const newLevel = result.newLevel || Math.floor(newXP / 1000) + 1;
+        
+        return {
+          ...prev,
+          xp: newXP,
+          level: newLevel,
+        };
       });
 
-      // Check for level up badge
-      if (result.leveledUp) {
-        await checkLevelBadges(result.newLevel);
-      }
+      await createNotification(currentUser.uid, {
+        type: "xp_earned",
+        title: `+${amount} XP Earned!`,
+        message: reason || "Keep it up!",
+        data: { xp: amount, reason },
+      });
 
       return result;
     } catch (err) {
-      console.error('Error awarding XP:', err);
+      console.error("Error awarding XP:", err);
       throw err;
     }
   };
 
-  // 🔹 Automatic badge checking based on conditions
+  const unlockBadge = (badgeId, xpReward = 50) => {
+    setUserStats((prev) => {
+      if (prev.badges.includes(badgeId)) return prev;
+      
+      return {
+        ...prev,
+        xp: prev.xp + xpReward,
+        badges: [...prev.badges, badgeId],
+      };
+    });
+  };
+
   const checkAndAwardBadgesAuto = async () => {
     if (!currentUser?.uid) return;
 
     const newBadges = [];
-    
     Object.entries(availableBadges).forEach(([badgeId, badgeInfo]) => {
-      const alreadyEarned = badges.some(b => b.badgeId === badgeId);
-      
-      // Check if badge has a condition function and if it's met
+      const alreadyEarned = userStats.badges.includes(badgeId) || badges.some((b) => b.badgeId === badgeId);
       if (!alreadyEarned && badgeInfo.condition && badgeInfo.condition(userStats)) {
         newBadges.push(badgeId);
       }
     });
 
-    // Award all newly earned badges
     for (const badgeId of newBadges) {
       await awardBadgeToUser(badgeId);
     }
   };
 
-  // Check and award badges based on user actions (manual trigger)
-  const checkAndAwardBadges = async (action, data = {}) => {
-    if (!currentUser?.uid) return;
+  const checkAndAwardBadges = async (uid, context = {}) => {
+    if (!uid) return;
 
-    const badgesToCheck = [];
-
-    switch (action) {
-      case 'first_transaction':
-        badgesToCheck.push('first_transaction');
-        break;
-      case 'goal_completed':
-        badgesToCheck.push('goal_achiever', 'goal_crusher');
-        break;
-      case 'streak_updated':
-        if (data.streak === 7) badgesToCheck.push('transaction_streak_7');
-        if (data.streak === 30) badgesToCheck.push('transaction_streak_30');
-        break;
-      case 'savings_milestone':
-        badgesToCheck.push('first_saver', 'saver_100', 'saver_1000');
-        break;
+    if (context.type === "savings_milestone" && userStats.totalSavings >= 500) {
+      await awardBadgeToUser("first_saver");
+    }
+    if (context.type === "first_transaction") {
+      // Add custom logic
+    }
+    if (context.type === "taskCompleted") {
+      // Check task badges
+    }
+    if (context.type === "goal_completed" && userStats.goalsCompleted >= 1) {
+      await awardBadgeToUser("goal_crusher");
     }
 
-    // Check each badge
-    for (const badgeKey of badgesToCheck) {
-      const hasUnearnedBadge = !badges.some(b => b.badgeId === badgeKey);
-
-      if (hasUnearnedBadge && availableBadges[badgeKey]) {
-        await awardBadgeToUser(badgeKey);
-      }
-    }
+    await checkAndAwardBadgesAuto();
   };
 
-  // Check level-based badges
-  const checkLevelBadges = async (level) => {
-    const levelBadges = [
-      { level: 5, badgeId: 'level_5' },
-      { level: 10, badgeId: 'level_10' }
-    ];
-
-    for (const { level: reqLevel, badgeId } of levelBadges) {
-      if (level >= reqLevel) {
-        const hasUnearnedBadge = !badges.some(b => b.badgeId === badgeId);
-        if (hasUnearnedBadge) {
-          await awardBadgeToUser(badgeId);
-        }
-      }
-    }
-  };
-
-  // Award a specific badge
   const awardBadgeToUser = async (badgeId) => {
     try {
       const badgeInfo = availableBadges[badgeId];
@@ -314,58 +199,28 @@ export const GamificationProvider = ({ children }) => {
         badgeId,
         name: badgeInfo.name,
         description: badgeInfo.description,
-        icon: badgeInfo.icon
+        icon: badgeInfo.icon,
       });
 
-      // Update local badges
-      setBadges(prev => [newBadge, ...prev]);
+      setBadges((prev) => [newBadge, ...prev]);
+      unlockBadge(badgeId, badgeInfo.xpReward);
 
-      // Create notification
       await createNotification(currentUser.uid, {
-        type: 'badge_earned',
+        type: "badge_earned",
         title: `Badge Unlocked: ${badgeInfo.name}!`,
         message: badgeInfo.description,
-        data: { badgeId, badge: badgeInfo }
+        data: { badgeId, badge: badgeInfo },
       });
 
       return newBadge;
     } catch (err) {
-      console.error('Error awarding badge:', err);
+      console.error("Error awarding badge:", err);
       throw err;
     }
   };
 
-  // Complete a daily task
-  const completeDailyTask = async (taskId) => {
-    try {
-      const task = dailyTasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      await completeTask(currentUser.uid, taskId, task.xpReward);
-
-      // Update local tasks
-      setDailyTasks(prev =>
-        prev.map(t =>
-          t.id === taskId
-            ? { ...t, completed: true, completedAt: new Date() }
-            : t
-        )
-      );
-
-      // Award XP
-      await awardXP(task.xpReward, `Completed: ${task.title}`);
-
-    } catch (err) {
-      console.error('Error completing task:', err);
-      throw err;
-    }
-  };
-
-  // Helper functions
-  const getXPToNextLevel = () => {
-    const nextLevel = userStats.level + 1;
-    const xpNeeded = nextLevel * 1000;
-    return xpNeeded - userStats.xp;
+  const getRecentBadges = (count = 3) => {
+    return badges.slice(-count).reverse();
   };
 
   const getLevelProgress = () => {
@@ -377,57 +232,32 @@ export const GamificationProvider = ({ children }) => {
     return {
       current: progressXP,
       total: totalXPForLevel,
-      percentage: (progressXP / totalXPForLevel) * 100
+      percentage: Math.min((progressXP / totalXPForLevel) * 100, 100),
     };
   };
 
-  const getRecentBadges = (limit = 3) => {
-    return badges
-      .sort((a, b) => new Date(b.earnedAt) - new Date(a.earnedAt))
-      .slice(0, limit);
-  };
-
-  const getCompletedTasksToday = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return dailyTasks.filter(task => {
-      if (!task.completed) return false;
-      const completedDate = new Date(task.completedAt);
-      completedDate.setHours(0, 0, 0, 0);
-      return completedDate.getTime() === today.getTime();
-    });
-  };
-
-  const getPendingTasksToday = () => {
-    return dailyTasks.filter(task => !task.completed);
-  };
-
-  const value = {
-    userStats,
-    badges,
-    dailyTasks,
-    loading,
-    error,
-    availableBadges,
-    setUserStats, // Added for compatibility with second code pattern
-
-    // Actions
-    awardXP,
-    checkAndAwardBadges,
-    completeDailyTask,
-    loadUserData,
-
-    // Helper functions
-    getXPToNextLevel,
-    getLevelProgress,
-    getRecentBadges,
-    getCompletedTasksToday,
-    getPendingTasksToday,
-  };
+  const getPendingTasksToday = () => dailyTasks.filter((t) => !t.completed);
 
   return (
-    <GamificationContext.Provider value={value}>
+    <GamificationContext.Provider
+      value={{
+        userStats,
+        badges,
+        dailyTasks,
+        loading,
+        error,
+        availableBadges,
+        unlockBadge,
+        awardXP,
+        loadUserData,
+        awardBadgeToUser,
+        checkAndAwardBadges,
+        getLevelProgress,
+        getPendingTasksToday,
+        getRecentBadges,
+        setUserStats,
+      }}
+    >
       {children}
     </GamificationContext.Provider>
   );

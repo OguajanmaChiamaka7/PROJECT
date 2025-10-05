@@ -35,6 +35,8 @@ const Dashboard = () => {
   const badgeXP = badgesEarned.length * 60;   // each badge worth 60xp
   const totalXP = xpFromStats + badgeXP;      // final XP with badges
 
+
+  
 // Load dashboard data
 const loadDashboardData = async () => {
   try {
@@ -100,7 +102,8 @@ const loadDashboardData = async () => {
   const incomeChange = stats.incomeChange || 0;
   const savingsProgressChange = stats.savingsChange || 5.2; // Fallback
 
-
+ const recentBadges = getRecentBadges(); // should now work
+  console.log("recent badges", recentBadges);
 
 
   const quickStatsData = [
@@ -316,7 +319,7 @@ const loadDashboardData = async () => {
           {/* Recent Transactions Card */}
           <div className="dashboard-card transactions-card">
             <div className="card-header">
-              <h3 className="card-title">Recent Transactions</h3>
+              <h3 className="card-title">Savings Account</h3>
               <button className="card-action">View All</button>
             </div>
             <div className="card-content">

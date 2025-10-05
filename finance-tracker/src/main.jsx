@@ -15,17 +15,17 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <TransactionProvider>
-          <GoalsProvider>
-            <GamificationProvider>
+          <GamificationProvider>
+          <TransactionProvider>
+             <GoalsProvider>
               <GameProvider>
                 <SavingsCircleProvider>
                   <App />
                 </SavingsCircleProvider>
               </GameProvider>
+              </GoalsProvider>
+            </TransactionProvider>
             </GamificationProvider>
-          </GoalsProvider>
-        </TransactionProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,
