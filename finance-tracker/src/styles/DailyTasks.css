@@ -143,6 +143,13 @@
   color: #6b7280;
 }
 
+/* Task Right Section (XP + Cancel Button) */
+.task-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* XP Badge */
 .xp-badge {
   background-color: #bbf7d0;
@@ -157,6 +164,31 @@
 .task-item.completed .xp-badge {
   background-color: #10b981;
   color: white;
+}
+
+/* Cancel Button */
+.cancel-task-btn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cancel-task-btn:hover {
+  background-color: #fecaca;
+  transform: scale(1.1);
+}
+
+.cancel-task-btn:active {
+  transform: scale(0.95);
 }
 
 /* Responsive Design */

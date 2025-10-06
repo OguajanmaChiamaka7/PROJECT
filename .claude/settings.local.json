@@ -5,7 +5,13 @@
       "Bash(find:*)",
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
-      "Bash(del \"C:\\Users\\kingsley\\Desktop\\PROJECT\\finance-tracker\\src\\utils\\sampleData.js\")"
+      "Bash(del \"C:\\Users\\kingsley\\Desktop\\PROJECT\\finance-tracker\\src\\utils\\sampleData.js\")",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(firebase deploy:*)"
     ],
     "deny": [],
     "ask": []

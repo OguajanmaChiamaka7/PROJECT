@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, X } from 'lucide-react';
 import '../../styles/DailyTasks.css';
 import { getAuth } from 'firebase/auth';
 import { completeTask, getUserTasks, getUserTasksStartTime } from '../../services/firestore';
 import { useGamification } from "../../context/GamificationContext";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 
 const DAILY_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -17,8 +17,7 @@ const DailyTasks = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ✅ Gamification functions from context
-  const { checkAndAwardBadges, awardXP } = useGamification();
+  const { checkAndAwardBadges } = useGamification();
 
   const auth = getAuth();
   const uid = auth.currentUser?.uid;
@@ -49,13 +48,13 @@ const DailyTasks = () => {
                 ...day,
                 tasks: day.tasks.map(t => ({
                   ...t,
-                  completed: t.completed || false, // make sure completed is false if undefined
+                  completed: t.completed || false,
                 })),
               }))
             );
 
         setStartTime(userStartTime || Date.now());
-        
+
         // Determine current unlocked day
         const now = Date.now();
         let unlockedDay = 0;
@@ -93,7 +92,7 @@ const DailyTasks = () => {
 
     const allCompleted = day.tasks.every(t => t.completed);
     const nextDayIndex = currentDayIndex + 1;
-    
+
     if (allCompleted && nextDayIndex < dailyTasks.length) {
       const nextDay = dailyTasks[nextDayIndex];
       if (nextDay && currentTime >= nextDay.unlockTime) {
@@ -102,102 +101,241 @@ const DailyTasks = () => {
     }
   }, [dailyTasks, currentDayIndex, currentTime, startTime]);
 
-  // ✅ Unified handler: Validate, Award XP, and Check Badges when completing a task
-const handleToggleTask = async (task) => {
-  if (!uid) return;
-  if (task.completed) return;
-
-  try {
-    // 🔍 Step 1: Verify that the user has actually completed the task
-    let isValid = false;
-
-    switch (task.type) {
-      case "savings":
-        // Example: check if user has saved at least ₦500 today
-        const savingsRef = collection(db, "savings");
-        const q1 = query(
-          savingsRef,
-          where("userId", "==", uid),
-          where("amount", ">=", 500),
-          where("date", ">=", new Date().toISOString().split("T")[0])
-        );
-        const savingsSnapshot = await getDocs(q1);
-        isValid = !savingsSnapshot.empty;
-        break;
-
-      case "transaction":
-        // Example: verify user has logged at least 1 transaction today
-        const transactionsRef = collection(db, "transactions");
-        const q2 = query(
-          transactionsRef,
-          where("userId", "==", uid),
-          where("date", ">=", new Date().toISOString().split("T")[0])
-        );
-        const transactionSnapshot = await getDocs(q2);
-        isValid = !transactionSnapshot.empty;
-        break;
-
-      case "lesson":
-        // Example: check if user has completed a learning tip/lesson
-        const lessonsRef = collection(db, "learningProgress");
-        const q3 = query(
-          lessonsRef,
-          where("userId", "==", uid),
-          where("completed", "==", true)
-        );
-        const lessonSnapshot = await getDocs(q3);
-        isValid = !lessonSnapshot.empty;
-        break;
-
-      default:
-        // For simple beginner tasks (e.g. “check balance”), auto-validate
-        isValid = true;
-    }
-
-    if (!isValid) {
-      alert("You need to complete the task action before marking it as done!");
+  // ✅ Handler to COMPLETE a task - with validation
+  const handleToggleTask = async (task) => {
+    if (!uid) return;
+    if (task.completed) {
+      alert("This task is already completed!");
       return;
     }
 
-    // ✅ Step 2: Update UI optimistically
-    const prevTasks = [...dailyTasks];
-    setDailyTasks(prev =>
-      prev.map((day, index) =>
-        index === currentDayIndex
-          ? {
-              ...day,
-              tasks: day.tasks.map(t =>
-                t.id === task.id
-                  ? { ...t, completed: true, completedAt: new Date().toISOString() }
-                  : t
-              ),
+    try {
+      // 🔍 Validate that the user has actually completed the required action
+      const isValid = await validateTaskCompletion(task);
+
+      if (!isValid.success) {
+        alert(isValid.message);
+        return;
+      }
+
+      // ✅ Save to Firestore (this awards XP automatically via completeTask function)
+      await completeTask(uid, currentDayIndex + 1, task.id, task.xp);
+
+      // ✅ Update UI after successful completion
+      setDailyTasks(prev =>
+        prev.map((day, index) =>
+          index === currentDayIndex
+            ? {
+                ...day,
+                tasks: day.tasks.map(t =>
+                  t.id === task.id
+                    ? { ...t, completed: true, completedAt: new Date().toISOString() }
+                    : t
+                ),
+              }
+            : day
+        )
+      );
+
+      // ✅ Check and unlock badges
+      await checkAndAwardBadges(uid, { type: "taskCompleted", task });
+
+      // Bonus badge triggers based on task type
+      if (task.type === "save_money") {
+        await checkAndAwardBadges(uid, { type: "savings_milestone" });
+      }
+      if (task.type === "track_expense") {
+        await checkAndAwardBadges(uid, { type: "first_transaction" });
+      }
+
+      alert(`✅ Task completed! You earned ${task.xp} XP!`);
+
+    } catch (error) {
+      console.error("Task completion failed:", error);
+      alert("Something went wrong while completing your task. Please try again.");
+    }
+  };
+
+  // ❌ Handler to CANCEL/UNCOMPLETE a task - with validation
+  const handleCancelTask = async (task, e) => {
+    e.stopPropagation(); // Prevent triggering the onClick on parent div
+
+    if (!uid) return;
+    if (!task.completed) {
+      alert("This task hasn't been completed yet!");
+      return;
+    }
+
+    try {
+      // 🔍 Check if user has actually completed the task action
+      const isValid = await validateTaskCompletion(task);
+
+      if (!isValid.success) {
+        alert(`❌ Cannot cancel! ${isValid.message}\n\nYou must complete the task action before you can cancel it.`);
+        return;
+      }
+
+      // User has completed the task, so they can cancel it
+      if (!window.confirm(`Are you sure you want to unmark "${task.title}"?`)) {
+        return;
+      }
+
+      // Update in Firestore
+      const taskRef = doc(db, "users", uid, "dailyTasks", `day${currentDayIndex + 1}`);
+      const taskSnap = await getDoc(taskRef);
+
+      if (taskSnap.exists()) {
+        const tasks = taskSnap.data().tasks;
+        const updatedTasks = tasks.map(t =>
+          t.id === task.id
+            ? { ...t, completed: false, completedAt: null }
+            : t
+        );
+
+        await updateDoc(taskRef, { tasks: updatedTasks });
+
+        // Update UI
+        setDailyTasks(prev =>
+          prev.map((day, index) =>
+            index === currentDayIndex
+              ? {
+                  ...day,
+                  tasks: day.tasks.map(t =>
+                    t.id === task.id
+                      ? { ...t, completed: false, completedAt: null }
+                      : t
+                  ),
+                }
+              : day
+          )
+        );
+
+        alert("Task unmarked successfully!");
+      }
+
+    } catch (error) {
+      console.error("Task cancel failed:", error);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+
+  // 🔍 Validate task completion based on type
+  const validateTaskCompletion = async (task) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      switch (task.type) {
+        case "save_money":
+          try {
+            // Check if user has saved at least ₦500 today
+            const savingsRef = collection(db, "transactions");
+            const q1 = query(
+              savingsRef,
+              where("userId", "==", uid),
+              where("type", "==", "income"),
+              where("category", "==", "Savings"),
+              where("date", ">=", today)
+            );
+            const savingsSnapshot = await getDocs(q1);
+
+            // Calculate total savings today
+            let totalSavings = 0;
+            savingsSnapshot.forEach(doc => {
+              totalSavings += doc.data().amount || 0;
+            });
+
+            if (totalSavings >= 500) {
+              return { success: true };
+            } else {
+              return {
+                success: false,
+                message: `You need to save at least ₦500 today.\nCurrent savings: ₦${totalSavings}\n\nGo to Transactions → Add Income → Category: Savings → Amount: ₦500 or more`
+              };
             }
-          : day
-      )
-    );
+          } catch (indexError) {
+            if (indexError.message.includes("index")) {
+              return {
+                success: false,
+                message: "⚠️ Database index is still building.\n\nPlease wait 5-10 minutes and try again.\n\nMeanwhile, make sure you've created the index by clicking the link in the browser console."
+              };
+            }
+            throw indexError;
+          }
 
-    // ✅ Step 3: Save to Firestore
-    await completeTask(uid, currentDayIndex + 1, task.id, task.xp);
+        case "track_expense":
+          try {
+            // Verify user has logged at least 1 expense transaction today
+            const transactionsRef = collection(db, "transactions");
+            const q2 = query(
+              transactionsRef,
+              where("userId", "==", uid),
+              where("type", "==", "expense"),
+              where("date", ">=", today)
+            );
+            const transactionSnapshot = await getDocs(q2);
 
-    // ✅ Step 4: Award XP + Log reason
-    await awardXP(task.xp, `Completed task: ${task.title}`);
+            if (!transactionSnapshot.empty) {
+              return { success: true };
+            } else {
+              return {
+                success: false,
+                message: "You need to record at least one expense today.\n\nGo to Transactions → Add Expense"
+              };
+            }
+          } catch (indexError) {
+            if (indexError.message.includes("index")) {
+              return {
+                success: false,
+                message: "⚠️ Database index is still building.\n\nPlease wait 5-10 minutes and try again.\n\nMeanwhile, make sure you've created the index by clicking the link in the browser console."
+              };
+            }
+            throw indexError;
+          }
 
-    // ✅ Step 5: Check and unlock badges
-    await checkAndAwardBadges(uid, { type: "taskCompleted", task });
+        case "read_tip":
+          // Check if user has viewed at least one financial tip
+          const tipsRef = doc(db, "userFinanceTips", uid);
+          const tipSnap = await getDoc(tipsRef);
 
-    // Bonus badge triggers based on task type
-    if (task.type === "savings") {
-      await checkAndAwardBadges(uid, { type: "savings_milestone" });
+          if (tipSnap.exists() && (tipSnap.data().currentTip || 0) >= 1) {
+            return { success: true };
+          } else {
+            return {
+              success: false,
+              message: "You need to read at least one financial tip.\n\nGo to Learning → Tips section"
+            };
+          }
+
+        case "set_goal":
+          // Check if user has created at least one savings goal
+          const goalsRef = collection(db, "goals");
+          const q3 = query(
+            goalsRef,
+            where("userId", "==", uid)
+          );
+          const goalsSnapshot = await getDocs(q3);
+
+          if (!goalsSnapshot.empty) {
+            return { success: true };
+          } else {
+            return {
+              success: false,
+              message: "You need to set a savings goal first.\n\nGo to Goals → Add New Goal"
+            };
+          }
+
+        default:
+          // For tasks without specific type, auto-validate
+          return { success: true };
+      }
+    } catch (error) {
+      console.error("Validation error:", error);
+      return {
+        success: false,
+        message: `Error validating task: ${error.message}`
+      };
     }
-    if (task.type === "transaction") {
-      await checkAndAwardBadges(uid, { type: "first_transaction" });
-    }
-
-  } catch (error) {
-    console.error("Task validation failed:", error);
-    alert("Something went wrong while checking your progress.");
-  }
-};
+  };
 
   const getCountdown = () => {
     if (!dailyTasks.length || !startTime) return null;
@@ -282,7 +420,8 @@ const handleToggleTask = async (task) => {
             <div
               key={task.id}
               className={`task-item ${task.completed ? 'completed' : 'incomplete'}`}
-              onClick={() => handleToggleTask(task)}
+              onClick={() => !task.completed && handleToggleTask(task)}
+              style={{ cursor: task.completed ? 'default' : 'pointer' }}
             >
               <div className="task-left">
                 <div className={`task-checkbox ${task.completed ? 'checked' : ''}`}>
@@ -292,8 +431,19 @@ const handleToggleTask = async (task) => {
                   {task.title}
                 </span>
               </div>
-              <div className="xp-badge">
-                +{task.xp} XP
+              <div className="task-right">
+                <div className="xp-badge">
+                  +{task.xp} XP
+                </div>
+                {task.completed && (
+                  <button
+                    className="cancel-task-btn"
+                    onClick={(e) => handleCancelTask(task, e)}
+                    title="Cancel/Unmark task"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
