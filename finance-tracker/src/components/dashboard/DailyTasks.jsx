@@ -4,6 +4,8 @@ import '../../styles/DailyTasks.css';
 import { getAuth } from 'firebase/auth';
 import { completeTask, getUserTasks, getUserTasksStartTime } from '../../services/firestore';
 import { useGamification } from "../../context/GamificationContext";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 const DAILY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -42,7 +44,16 @@ const DailyTasks = () => {
           return;
         }
 
-        setDailyTasks(tasks);
+        setDailyTasks(
+              tasks.map(day => ({
+                ...day,
+                tasks: day.tasks.map(t => ({
+                  ...t,
+                  completed: t.completed || false, // make sure completed is false if undefined
+                })),
+              }))
+            );
+
         setStartTime(userStartTime || Date.now());
         
         // Determine current unlocked day
@@ -91,12 +102,64 @@ const DailyTasks = () => {
     }
   }, [dailyTasks, currentDayIndex, currentTime, startTime]);
 
-  // ✅ Unified handler: Award XP + check badges when completing a task
-  const handleToggleTask = async (task) => {
-    if (!uid) return;
-    if (task.completed) return;
+  // ✅ Unified handler: Validate, Award XP, and Check Badges when completing a task
+const handleToggleTask = async (task) => {
+  if (!uid) return;
+  if (task.completed) return;
 
-    // Optimistic UI update
+  try {
+    // 🔍 Step 1: Verify that the user has actually completed the task
+    let isValid = false;
+
+    switch (task.type) {
+      case "savings":
+        // Example: check if user has saved at least ₦500 today
+        const savingsRef = collection(db, "savings");
+        const q1 = query(
+          savingsRef,
+          where("userId", "==", uid),
+          where("amount", ">=", 500),
+          where("date", ">=", new Date().toISOString().split("T")[0])
+        );
+        const savingsSnapshot = await getDocs(q1);
+        isValid = !savingsSnapshot.empty;
+        break;
+
+      case "transaction":
+        // Example: verify user has logged at least 1 transaction today
+        const transactionsRef = collection(db, "transactions");
+        const q2 = query(
+          transactionsRef,
+          where("userId", "==", uid),
+          where("date", ">=", new Date().toISOString().split("T")[0])
+        );
+        const transactionSnapshot = await getDocs(q2);
+        isValid = !transactionSnapshot.empty;
+        break;
+
+      case "lesson":
+        // Example: check if user has completed a learning tip/lesson
+        const lessonsRef = collection(db, "learningProgress");
+        const q3 = query(
+          lessonsRef,
+          where("userId", "==", uid),
+          where("completed", "==", true)
+        );
+        const lessonSnapshot = await getDocs(q3);
+        isValid = !lessonSnapshot.empty;
+        break;
+
+      default:
+        // For simple beginner tasks (e.g. “check balance”), auto-validate
+        isValid = true;
+    }
+
+    if (!isValid) {
+      alert("You need to complete the task action before marking it as done!");
+      return;
+    }
+
+    // ✅ Step 2: Update UI optimistically
     const prevTasks = [...dailyTasks];
     setDailyTasks(prev =>
       prev.map((day, index) =>
@@ -104,8 +167,8 @@ const DailyTasks = () => {
           ? {
               ...day,
               tasks: day.tasks.map(t =>
-                t.id === task.id 
-                  ? { ...t, completed: true, completedAt: new Date().toISOString() } 
+                t.id === task.id
+                  ? { ...t, completed: true, completedAt: new Date().toISOString() }
                   : t
               ),
             }
@@ -113,35 +176,28 @@ const DailyTasks = () => {
       )
     );
 
-    try {
-      // 1) Save to Firestore
-      await completeTask(uid, currentDayIndex + 1, task.id, task.xp);
+    // ✅ Step 3: Save to Firestore
+    await completeTask(uid, currentDayIndex + 1, task.id, task.xp);
 
-      // 2) Award XP with description
-      await awardXP(task.xp, `Completed task: ${task.title}`);
+    // ✅ Step 4: Award XP + Log reason
+    await awardXP(task.xp, `Completed task: ${task.title}`);
 
-      // 3) Check & unlock badges based on task type and context
-      await checkAndAwardBadges(uid, { 
-        type: "taskCompleted", 
-        task,
-        taskType: task.type 
-      });
+    // ✅ Step 5: Check and unlock badges
+    await checkAndAwardBadges(uid, { type: "taskCompleted", task });
 
-      // Additional badge checks for specific task types
-      if (task.type === "savings") {
-        await checkAndAwardBadges(uid, { type: "savings_milestone" });
-      }
-      if (task.type === "transaction") {
-        await checkAndAwardBadges(uid, { type: "first_transaction" });
-      }
-
-    } catch (error) {
-      console.error("Failed to complete task:", error);
-      // Rollback UI on error
-      setDailyTasks(prevTasks);
-      alert("Failed to complete task. Please try again.");
+    // Bonus badge triggers based on task type
+    if (task.type === "savings") {
+      await checkAndAwardBadges(uid, { type: "savings_milestone" });
     }
-  };
+    if (task.type === "transaction") {
+      await checkAndAwardBadges(uid, { type: "first_transaction" });
+    }
+
+  } catch (error) {
+    console.error("Task validation failed:", error);
+    alert("Something went wrong while checking your progress.");
+  }
+};
 
   const getCountdown = () => {
     if (!dailyTasks.length || !startTime) return null;

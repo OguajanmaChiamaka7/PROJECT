@@ -13,6 +13,9 @@ import {
   CreditCard,
   Home,
   Smartphone,
+  Calculator,
+  Wallet,
+  File,
   Globe,
   Users,
   Award,
@@ -20,9 +23,11 @@ import {
   BookmarkPlus,
   Eye,
   Calendar,
-  BarChart3
+  BarChart3,
+  Badge
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getAuth } from 'firebase/auth';
 import {
   collection,
   query,
@@ -38,6 +43,7 @@ import {
   arrayRemove
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import {financeTipsData} from '../utils/constants';
 import '../styles/Learning.css';
 
 const Learning = () => {
@@ -46,7 +52,7 @@ const Learning = () => {
     enrolledCourses: [],
     completedLessons: [],
     bookmarkedContent: [],
-    achievements: [],
+    tips: [],
     progress: {
       totalCourses: 0,
       completedCourses: 0,
@@ -366,6 +372,67 @@ const Learning = () => {
     }
   };
 
+const financeTips = [
+  {
+    id: 1,
+    title: "The Power of Small Savings",
+    tip: `Most people think they need to start saving with huge amounts of money — that's not true. 
+    What matters most is consistency. Saving ₦500 every day may seem small, but over a month,
+    that's ₦15,000. In a year, that's ₦180,000 — excluding any interest or investment growth.
+    Small, consistent savings build financial discipline and create a habit that lasts a lifetime.`,
+    icon: PiggyBank,
+    color: "#2ecc71" // light green
+  },
+  {
+    id: 2,
+    title: "Budgeting Is a Superpower",
+    tip: `Budgeting helps you control your money instead of letting it control you. 
+    Write down your income, track your expenses, and decide how much goes into needs, wants, and savings. 
+    When you budget intentionally, you’ll be surprised how much money you can redirect toward your goals.`,
+    icon: Calculator,
+    color: "#27ae60"
+  },
+  {
+    id: 3,
+    title: "Pay Yourself First",
+    tip: `Before paying bills or buying anything, set aside your savings. 
+    Treat it like a non-negotiable expense. Automate transfers if possible — 
+    it removes temptation and builds a consistent saving habit.`,
+    icon: Wallet,
+    color: "#1abc9c"
+  }
+  ];
+  
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+const [userProgress, setUserProgress] = useState(null);
+const uid = getAuth().currentUser?.uid;
+
+useEffect(() => {
+  const fetchUserProgress = async () => {
+    if (!uid) return;
+    const docRef = doc(db, "userFinanceTips", uid);
+    const snapshot = await getDoc(docRef);
+
+    if (snapshot.exists()) {
+      setUserProgress(snapshot.data());
+      setCurrentTipIndex(snapshot.data().currentTip || 0);
+    } else {
+      await setDoc(docRef, { currentTip: 0 });
+    }
+  };
+
+  fetchUserProgress();
+}, [uid]);
+
+const unlockNextTip = async () => {
+  if (currentTipIndex < financeTipsData.length - 1) {
+    const newIndex = currentTipIndex + 1;
+    setCurrentTipIndex(newIndex);
+    await updateDoc(doc(db, "userFinanceTips", uid), { currentTip: newIndex });
+  }
+};
+
+
   const toggleBookmark = async (contentId, contentType = 'course') => {
     if (!currentUser) return;
 
@@ -475,7 +542,7 @@ const Learning = () => {
         {[
           { key: 'courses', label: 'All Courses', icon: BookOpen },
           { key: 'enrolled', label: 'My Courses', icon: Play },
-          { key: 'achievements', label: 'Achievements', icon: Trophy },
+          { key: 'tips', label: 'Tips', icon: File, },
           { key: 'bookmarks', label: 'Bookmarks', icon: BookmarkPlus }
         ].map(({ key, label, icon: Icon }) => (
           <button
@@ -673,36 +740,34 @@ const Learning = () => {
             )}
           </div>
         )}
+{activeTab === 'tips' && (
+  <div className="finance-tips-section">
+    <div className="section-header">
+      <h2>Daily Finance Tip</h2>
+      <p>Learn one new thing every day to improve your money habits</p>
+    </div>
 
-        {activeTab === 'achievements' && (
-          <div className="achievements-section">
-            <div className="section-header">
-              <h2>Achievements</h2>
-              <p>Track your learning milestones and unlock rewards</p>
-            </div>
+    {financeTipsData[currentTipIndex] && (
+      <div className="finance-tip-card">
+        <div
+          className="finance-tip-icon"
+          style={{
+            backgroundColor: `${financeTipsData[currentTipIndex].iconColor}20`,
+            color: financeTipsData[currentTipIndex].iconColor,
+          }}
+        >
+          <BookOpen size={24} />
+        </div>
+        <div className="finance-tip-content">
+          <h4>{financeTipsData[currentTipIndex].title}</h4>
+          <p>{financeTipsData[currentTipIndex].content}</p>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
-            <div className="achievements-grid">
-              {achievements.map((achievement) => {
-                const Icon = achievement.icon;
-                const unlocked = learningData.achievements?.includes(achievement.id);
 
-                return (
-                  <div key={achievement.id} className={`achievement-card ${unlocked ? 'unlocked' : 'locked'}`}>
-                    <div className="achievement-icon" style={{ backgroundColor: `${achievement.color}20`, color: achievement.color }}>
-                      <Icon size={24} />
-                      {unlocked && <CheckCircle className="unlock-indicator" size={16} />}
-                    </div>
-                    <div className="achievement-content">
-                      <h4 className="achievement-title">{achievement.title}</h4>
-                      <p className="achievement-description">{achievement.description}</p>
-                      <div className="achievement-requirement">{achievement.requirement}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {activeTab === 'bookmarks' && (
           <div className="bookmarks-section">

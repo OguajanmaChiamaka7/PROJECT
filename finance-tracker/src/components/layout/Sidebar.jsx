@@ -118,8 +118,8 @@ const percentage = (xpForLevel / 1000) * 100;
         <div className="nav-section">
           <div className="nav-section-title">Main</div>
           <SidebarItem icon={Home} text="Dashboard" to="/app" />
-          <SidebarItem icon={CreditCard} text="Transactions" to="/app/transactions" />
-          <SidebarItem icon={Target} text="Goals" to="/app/goals" badge="2" />
+          <SidebarItem icon={CreditCard} text="Transactions" to="/app/transactions" badge="1" />
+          <SidebarItem icon={Target} text="Goals" to="/app/goals" badge="1" />
           <SidebarItem icon={BarChart3} text="Analytics" to="/app/analytics" />
         </div>
 
@@ -135,7 +135,7 @@ const percentage = (xpForLevel / 1000) * 100;
         <div className="nav-section">
           <div className="nav-section-title">Features</div>
           <SidebarItem icon={DollarSign} text="Investment" to="/app/investment" />
-          <SidebarItem icon={BookOpen} text="Learning" to="/app/learning" />
+          <SidebarItem icon={BookOpen} text="Learning" to="/app/learning" badge="1" />
           <SidebarItem icon={FileText} text="Resources" to="/app/resources" />
           <SidebarItem icon={Users} text="Community" to="/app/community" />
         </div>
@@ -143,7 +143,7 @@ const percentage = (xpForLevel / 1000) * 100;
         <div className="nav-section">
           <div className="nav-section-title">Account</div>
           <SidebarItem icon={User} text="Profile" to="/app/profile" />
-          <SidebarItem icon={Bell} text="Notifications" to="/app/notifications" badge="2" />
+          <SidebarItem icon={Bell} text="Notifications" to="/app/notifications" badge="3" />
           <SidebarItem icon={Settings} text="Settings" to="/app/settings" />
         </div>
 

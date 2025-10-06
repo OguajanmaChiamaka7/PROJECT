@@ -417,13 +417,13 @@
 }
 
 /* Achievements */
-.achievements-grid {
+/* .tips-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
-.achievement-card {
+.tips-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -433,21 +433,21 @@
   position: relative;
 }
 
-.achievement-card.locked {
+.tips-card.locked {
   opacity: 0.6;
 }
 
-.achievement-card.unlocked {
+.tips-card.unlocked {
   background: linear-gradient(135deg, #f0fdf4, #dcfce7);
   border-color: #bbf7d0;
 }
 
-.achievement-card:hover {
+.tips-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.achievement-icon {
+.tip-icon {
   width: 60px;
   height: 60px;
   border-radius: 12px;
@@ -467,14 +467,14 @@
   color: #10b981;
 }
 
-.achievement-content h4 {
+.tip-content h4 {
   font-size: 1rem;
   font-weight: 600;
   color: #111827;
   margin: 0 0 8px;
 }
 
-.achievement-description {
+.tip-description {
   font-size: 0.875rem;
   color: #6b7280;
   margin: 0 0 12px;
@@ -485,6 +485,79 @@
   font-size: 0.75rem;
   color: #9ca3af;
   font-style: italic;
+} */
+
+.finance-tips-section {
+  padding: 2rem;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1e1e1e;
+}
+
+.section-header p {
+  font-size: 1rem;
+  color: #555;
+}
+
+.tips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.finance-tip-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-left: 5px solid #2ecc71;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finance-tip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.finance-tip-icon {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.finance-tip-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin-bottom: 0.5rem;
+}
+
+.finance-tip-content p {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Bookmarks */

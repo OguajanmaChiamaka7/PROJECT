@@ -6,6 +6,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { dailyTasksData } from "../utils/constants";
+import { financeTipsData } from "../utils/constants";
 
 // ===== USER MANAGEMENT =====
 export const saveUserProfile = async (uid, data) => {
@@ -377,7 +378,7 @@ export const completeTask = async (uid, day, taskId, xpReward = 25) => {
 
     const tasks = taskSnap.data().tasks;
     const taskToComplete = tasks.find(t => t.id === taskId);
-    
+
     if (!taskToComplete) {
       throw new Error("Task not found");
     }
@@ -386,16 +387,37 @@ export const completeTask = async (uid, day, taskId, xpReward = 25) => {
       throw new Error("Task already completed");
     }
 
+    // ✅ Mark task as completed
     const updatedTasks = tasks.map(task =>
-      task.id === taskId 
-        ? { ...task, completed: true, completedAt: new Date().toISOString() } 
+      task.id === taskId
+        ? { ...task, completed: true, completedAt: new Date().toISOString() }
         : task
     );
 
     await updateDoc(taskRef, { tasks: updatedTasks });
 
-    // Award XP
+    // ✅ Award XP
     await updateUserXP(uid, xpReward);
+
+    // ✅ Unlock next finance tip if this is the “Read Daily Tip” task
+    if (taskId === "readDailyTip") {
+      const tipRef = doc(db, "userFinanceTips", uid);
+      const tipSnap = await getDoc(tipRef);
+
+      if (tipSnap.exists()) {
+        const currentIndex = tipSnap.data().currentTip || 0;
+        await updateDoc(tipRef, {
+          currentTip: currentIndex + 1,
+          lastUpdated: serverTimestamp(),
+        });
+      } else {
+        // Create document if none exists yet
+        await setDoc(tipRef, {
+          currentTip: 1,
+          lastUpdated: serverTimestamp(),
+        });
+      }
+    }
 
     return true;
   } catch (error) {
@@ -403,6 +425,7 @@ export const completeTask = async (uid, day, taskId, xpReward = 25) => {
     throw error;
   }
 };
+
 
 
 // Get user's start time for task unlocking
