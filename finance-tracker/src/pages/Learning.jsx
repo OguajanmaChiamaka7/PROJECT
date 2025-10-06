@@ -417,7 +417,10 @@ useEffect(() => {
       setUserProgress(snapshot.data());
       setCurrentTipIndex(snapshot.data().currentTip || 0);
     } else {
-      await setDoc(docRef, { currentTip: 0 });
+      // Initialize with currentTip: 1 (meaning they've viewed the first tip)
+      await setDoc(docRef, { currentTip: 1 });
+      setCurrentTipIndex(0);
+      setUserProgress({ currentTip: 1 });
     }
   };
 
@@ -762,6 +765,14 @@ const unlockNextTip = async () => {
           <h4>{financeTipsData[currentTipIndex].title}</h4>
           <p>{financeTipsData[currentTipIndex].content}</p>
         </div>
+        <button
+          className="btn btn-primary"
+          onClick={unlockNextTip}
+          disabled={currentTipIndex >= financeTipsData.length - 1}
+          style={{ marginTop: '1rem' }}
+        >
+          {currentTipIndex >= financeTipsData.length - 1 ? 'All Tips Read!' : 'Next Tip →'}
+        </button>
       </div>
     )}
   </div>

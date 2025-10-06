@@ -12,6 +12,7 @@ const Transactions = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -22,7 +23,7 @@ const Transactions = () => {
 
   const categories = {
     expense: ['Food', 'Transportation', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Other'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Other']
+    income: ['Salary', 'Freelance', 'Investment', 'Savings', 'Gift', 'Other']
   };
 
   const handleInputChange = (e) => {
@@ -46,6 +47,10 @@ const Transactions = () => {
       amount: parseFloat(formData.amount),
     };
 
+    console.log('Adding transaction:', transactionData);
+    console.log('Amount type:', typeof transactionData.amount);
+
+    setIsSubmitting(true);
     try {
       if (editingTransaction) {
         await updateTransaction(editingTransaction.id, transactionData);
@@ -53,6 +58,8 @@ const Transactions = () => {
       } else {
         await addTransaction(transactionData);
       }
+
+      console.log('Transaction added successfully');
 
       setFormData({
         description: '',
@@ -65,6 +72,8 @@ const Transactions = () => {
     } catch (error) {
       console.error('Error saving transaction:', error);
       alert('Failed to save transaction. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -92,23 +101,34 @@ const Transactions = () => {
   };
 
   const calculateBalance = () => {
-    return transactions.reduce((balance, transaction) => {
-      return transaction.type === 'income'
-        ? balance + transaction.amount
-        : balance - transaction.amount;
+    console.log('=== Calculating Balance ===');
+    console.log('Total transactions:', transactions.length);
+
+    const balance = transactions.reduce((balance, transaction) => {
+      const amount = parseFloat(transaction.amount) || 0;
+      const newBalance = transaction.type === 'income'
+        ? balance + amount
+        : balance - amount;
+
+      console.log(`${transaction.description} | Type: ${transaction.type} | Amount: ₦${amount} | Balance: ₦${newBalance}`);
+
+      return newBalance;
     }, 0);
+
+    console.log('=== Final Balance: ₦' + balance + ' ===');
+    return balance;
   };
 
   const getTotalIncome = () => {
     return transactions
       .filter(t => t.type === 'income')
-      .reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + (parseFloat(t.amount) || 0), 0);
   };
 
   const getTotalExpenses = () => {
     return transactions
       .filter(t => t.type === 'expense')
-      .reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + (parseFloat(t.amount) || 0), 0);
   };
 
   const getFilteredTransactions = () => {
@@ -268,8 +288,21 @@ const Transactions = () => {
               </div>
               
               <div className="form-actions">
-                <button type="submit" className="submit-btn">
-                  {editingTransaction ? 'Update Transaction' : 'Add Transaction'}
+                <button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={isSubmitting}
+                  style={{
+                    opacity: isSubmitting ? 0.7 : 1,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isSubmitting
+                    ? 'Saving...'
+                    : editingTransaction
+                      ? 'Update Transaction'
+                      : 'Add Transaction'
+                  }
                 </button>
               </div>
             </form>

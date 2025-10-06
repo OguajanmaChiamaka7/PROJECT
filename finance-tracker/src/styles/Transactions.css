@@ -63,10 +63,12 @@
 
 .balance-card.positive {
   border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .balance-card.negative {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .card-content {
@@ -94,13 +96,13 @@
 }
 
 .balance-card.positive .card-icon {
-  color: #3b82f6;
-  background: #dbeafe;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .balance-card.negative .card-icon {
-  color: #f59e0b;
-  background: #fef3c7;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .card-info {
@@ -131,11 +133,16 @@
 }
 
 .balance-amount {
-  color: white;
+  color: #ffffff;
+}
+
+.balance-card.positive .card-label,
+.balance-card.negative .card-label {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .balance-card.negative .balance-amount {
-  color: #f59e0b;
+  color: #ffffff;
 }
 
 /* Add Button */

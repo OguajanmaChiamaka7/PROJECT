@@ -6,6 +6,7 @@ import { completeTask, getUserTasks, getUserTasksStartTime } from '../../service
 import { useGamification } from "../../context/GamificationContext";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import TaskValidationModal from './TaskValidationModal';
 
 const DAILY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -16,6 +17,14 @@ const DailyTasks = () => {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalData, setModalData] = useState({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    currentAmount: undefined,
+    requiredAmount: undefined
+  });
 
   const { checkAndAwardBadges } = useGamification();
 
@@ -105,7 +114,14 @@ const DailyTasks = () => {
   const handleToggleTask = async (task) => {
     if (!uid) return;
     if (task.completed) {
-      alert("This task is already completed!");
+      setModalData({
+        isOpen: true,
+        type: 'info',
+        title: 'Already Completed',
+        message: 'This task has already been completed!',
+        currentAmount: undefined,
+        requiredAmount: undefined
+      });
       return;
     }
 
@@ -114,7 +130,14 @@ const DailyTasks = () => {
       const isValid = await validateTaskCompletion(task);
 
       if (!isValid.success) {
-        alert(isValid.message);
+        setModalData({
+          isOpen: true,
+          type: isValid.type || 'warning',
+          title: isValid.title || 'Task Not Complete',
+          message: isValid.message,
+          currentAmount: isValid.currentAmount,
+          requiredAmount: isValid.requiredAmount
+        });
         return;
       }
 
@@ -148,11 +171,25 @@ const DailyTasks = () => {
         await checkAndAwardBadges(uid, { type: "first_transaction" });
       }
 
-      alert(`✅ Task completed! You earned ${task.xp} XP!`);
+      setModalData({
+        isOpen: true,
+        type: 'success',
+        title: '🎉 Task Completed!',
+        message: `Congratulations! You earned ${task.xp} XP for completing "${task.title}"`,
+        currentAmount: undefined,
+        requiredAmount: undefined
+      });
 
     } catch (error) {
       console.error("Task completion failed:", error);
-      alert("Something went wrong while completing your task. Please try again.");
+      setModalData({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: "Something went wrong while completing your task. Please try again.",
+        currentAmount: undefined,
+        requiredAmount: undefined
+      });
     }
   };
 
@@ -227,21 +264,23 @@ const DailyTasks = () => {
       switch (task.type) {
         case "save_money":
           try {
-            // Check if user has saved at least ₦500 today
+            // Get ALL user transactions and filter in memory (avoids complex index)
             const savingsRef = collection(db, "transactions");
             const q1 = query(
               savingsRef,
-              where("userId", "==", uid),
-              where("type", "==", "income"),
-              where("category", "==", "Savings"),
-              where("date", ">=", today)
+              where("userId", "==", uid)
             );
             const savingsSnapshot = await getDocs(q1);
 
-            // Calculate total savings today
+            // Calculate total savings today by filtering in memory
             let totalSavings = 0;
             savingsSnapshot.forEach(doc => {
-              totalSavings += doc.data().amount || 0;
+              const data = doc.data();
+              if (data.type === "income" &&
+                  data.category === "Savings" &&
+                  data.date >= today) {
+                totalSavings += data.amount || 0;
+              }
             });
 
             if (totalSavings >= 500) {
@@ -249,47 +288,56 @@ const DailyTasks = () => {
             } else {
               return {
                 success: false,
-                message: `You need to save at least ₦500 today.\nCurrent savings: ₦${totalSavings}\n\nGo to Transactions → Add Income → Category: Savings → Amount: ₦500 or more`
+                type: 'warning',
+                title: 'Savings Goal Not Met',
+                message: 'You need to save at least ₦500 today to complete this task.\n\nGo to Transactions → Add Income → Category: "Savings" → Enter amount of ₦500 or more.',
+                currentAmount: totalSavings,
+                requiredAmount: 500
               };
             }
           } catch (indexError) {
-            if (indexError.message.includes("index")) {
-              return {
-                success: false,
-                message: "⚠️ Database index is still building.\n\nPlease wait 5-10 minutes and try again.\n\nMeanwhile, make sure you've created the index by clicking the link in the browser console."
-              };
-            }
-            throw indexError;
+            console.error("Save money validation error:", indexError);
+            return {
+              success: false,
+              message: "Error checking savings. Please try again."
+            };
           }
 
         case "track_expense":
           try {
-            // Verify user has logged at least 1 expense transaction today
+            // Get ALL user transactions and filter in memory
             const transactionsRef = collection(db, "transactions");
             const q2 = query(
               transactionsRef,
-              where("userId", "==", uid),
-              where("type", "==", "expense"),
-              where("date", ">=", today)
+              where("userId", "==", uid)
             );
             const transactionSnapshot = await getDocs(q2);
 
-            if (!transactionSnapshot.empty) {
+            // Check if any expense exists today
+            let hasExpenseToday = false;
+            transactionSnapshot.forEach(doc => {
+              const data = doc.data();
+              if (data.type === "expense" && data.date >= today) {
+                hasExpenseToday = true;
+              }
+            });
+
+            if (hasExpenseToday) {
               return { success: true };
             } else {
               return {
                 success: false,
-                message: "You need to record at least one expense today.\n\nGo to Transactions → Add Expense"
+                type: 'warning',
+                title: 'No Expense Recorded',
+                message: "You need to record at least one expense today to complete this task.\n\nGo to Transactions → Add Expense and log any expense."
               };
             }
           } catch (indexError) {
-            if (indexError.message.includes("index")) {
-              return {
-                success: false,
-                message: "⚠️ Database index is still building.\n\nPlease wait 5-10 minutes and try again.\n\nMeanwhile, make sure you've created the index by clicking the link in the browser console."
-              };
-            }
-            throw indexError;
+            console.error("Track expense validation error:", indexError);
+            return {
+              success: false,
+              message: "Error checking expenses. Please try again."
+            };
           }
 
         case "read_tip":
@@ -302,12 +350,14 @@ const DailyTasks = () => {
           } else {
             return {
               success: false,
-              message: "You need to read at least one financial tip.\n\nGo to Learning → Tips section"
+              type: 'info',
+              title: 'Read a Financial Tip',
+              message: "You need to read at least one financial tip to complete this task.\n\nGo to Learning → Tips section and read a tip!"
             };
           }
 
         case "set_goal":
-          // Check if user has created at least one savings goal
+          // Get all goals and filter by userId in memory
           const goalsRef = collection(db, "goals");
           const q3 = query(
             goalsRef,
@@ -315,12 +365,19 @@ const DailyTasks = () => {
           );
           const goalsSnapshot = await getDocs(q3);
 
+          console.log('Goals found:', goalsSnapshot.size);
+          goalsSnapshot.forEach(doc => {
+            console.log('Goal:', doc.id, doc.data());
+          });
+
           if (!goalsSnapshot.empty) {
             return { success: true };
           } else {
             return {
               success: false,
-              message: "You need to set a savings goal first.\n\nGo to Goals → Add New Goal"
+              type: 'info',
+              title: 'Set a Savings Goal',
+              message: "You need to create a savings goal to complete this task.\n\nGo to Goals → Add New Goal and create your first savings goal!"
             };
           }
 
@@ -390,15 +447,26 @@ const DailyTasks = () => {
   const taskProgress = (completedTasks / totalTasks) * 100;
 
   return (
-    <div className="daily-tasks-container">
-      <div className="daily-tasks-card slide-in">
-        <div className="daily-tasks-header">
-          <h2 className="daily-tasks-title">Day {day.day} Tasks</h2>
-          <div className="daily-tasks-counter">
-            <span className="counter-text">{completedTasks}/{totalTasks}</span>
-            <CheckCircle className="counter-icon" />
+    <>
+      <TaskValidationModal
+        isOpen={modalData.isOpen}
+        onClose={() => setModalData({ ...modalData, isOpen: false })}
+        type={modalData.type}
+        title={modalData.title}
+        message={modalData.message}
+        currentAmount={modalData.currentAmount}
+        requiredAmount={modalData.requiredAmount}
+      />
+
+      <div className="daily-tasks-container">
+        <div className="daily-tasks-card slide-in">
+          <div className="daily-tasks-header">
+            <h2 className="daily-tasks-title">Day {day.day} Tasks</h2>
+            <div className="daily-tasks-counter">
+              <span className="counter-text">{completedTasks}/{totalTasks}</span>
+              <CheckCircle className="counter-icon" />
+            </div>
           </div>
-        </div>
 
         <div className="progress-container">
           <div className="progress-bar">
@@ -450,6 +518,7 @@ const DailyTasks = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

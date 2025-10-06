@@ -209,7 +209,12 @@ export const GamificationProvider = ({ children }) => {
         type: "badge_earned",
         title: `Badge Unlocked: ${badgeInfo.name}!`,
         message: badgeInfo.description,
-        data: { badgeId, badge: badgeInfo },
+        data: {
+          badgeId,
+          badgeName: badgeInfo.name,
+          badgeDescription: badgeInfo.description,
+          badgeIcon: badgeInfo.icon
+        },
       });
 
       return newBadge;

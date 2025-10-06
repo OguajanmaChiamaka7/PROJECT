@@ -116,12 +116,24 @@ export const TransactionProvider = ({ children }) => {
         await checkAndAwardBadges(currentUser.uid, { type: 'first_transaction' });
       }
 
-      // Update total savings if it's income
-      if (transactionData.type === 'income' && setUserStats) {
-        setUserStats((prev) => ({
-          ...prev,
-          totalSavings: prev.totalSavings + transactionData.amount,
-        }));
+      // Update balance based on transaction type
+      if (setUserStats) {
+        setUserStats((prev) => {
+          const amount = parseFloat(transactionData.amount);
+          const newBalance = transactionData.type === 'income'
+            ? prev.balance + amount
+            : prev.balance - amount;
+
+          const newTotalSavings = transactionData.type === 'income' && transactionData.category === 'Savings'
+            ? prev.totalSavings + amount
+            : prev.totalSavings;
+
+          return {
+            ...prev,
+            balance: newBalance,
+            totalSavings: newTotalSavings
+          };
+        });
       }
 
       // Refresh analytics
@@ -144,9 +156,12 @@ export const TransactionProvider = ({ children }) => {
       setError(null);
 
       // Keep ID as-is (number or string)
-        const id = transactionId;
+      const id = transactionId;
 
       console.log('Updating transaction:', id, 'Type:', typeof id, updatedData);
+
+      // Find old transaction to calculate balance difference
+      const oldTransaction = transactions.find(t => t.id == id);
 
       // Update in database first
       await updateTransactionDB(id, updatedData);
@@ -159,6 +174,29 @@ export const TransactionProvider = ({ children }) => {
             : transaction
         )
       );
+
+      // Update balance - reverse old transaction and apply new one
+      if (oldTransaction && setUserStats) {
+        setUserStats((prev) => {
+          const oldAmount = parseFloat(oldTransaction.amount);
+          const newAmount = parseFloat(updatedData.amount);
+
+          // Reverse old transaction
+          let newBalance = oldTransaction.type === 'income'
+            ? prev.balance - oldAmount
+            : prev.balance + oldAmount;
+
+          // Apply new transaction
+          newBalance = updatedData.type === 'income'
+            ? newBalance + newAmount
+            : newBalance - newAmount;
+
+          return {
+            ...prev,
+            balance: newBalance
+          };
+        });
+      }
 
       // Refresh analytics
       await loadAnalytics();
@@ -186,6 +224,9 @@ export const TransactionProvider = ({ children }) => {
       console.log('Deleting transaction with ID:', id, 'Type:', typeof id);
       console.log('Current transactions:', transactions.map(t => ({ id: t.id, type: typeof t.id })));
 
+      // Find transaction to update balance
+      const transactionToDelete = transactions.find(t => t.id == id);
+
       // Delete from database first
       await deleteTransactionDB(id);
 
@@ -195,6 +236,21 @@ export const TransactionProvider = ({ children }) => {
         console.log('Filtered transactions:', filtered.length, 'from', prev.length);
         return filtered;
       });
+
+      // Update balance - reverse the deleted transaction
+      if (transactionToDelete && setUserStats) {
+        setUserStats((prev) => {
+          const amount = parseFloat(transactionToDelete.amount);
+          const newBalance = transactionToDelete.type === 'income'
+            ? prev.balance - amount  // Remove income
+            : prev.balance + amount; // Add back expense
+
+          return {
+            ...prev,
+            balance: newBalance
+          };
+        });
+      }
 
       // Refresh analytics
       await loadAnalytics();
